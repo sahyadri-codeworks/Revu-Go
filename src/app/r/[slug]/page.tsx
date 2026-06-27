@@ -144,6 +144,7 @@ function CustomerFlow({
   const templateQuestions = getMCQQuestions(industrySegment, subIndustry);
   const [questions, setQuestions] = useState(templateQuestions);
   const [questionsLoaded, setQuestionsLoaded] = useState(false);
+  const [loadingNextQ, setLoadingNextQ] = useState(false);
   const [sessionToken] = useState(() => `rf-${Date.now().toString(36)}`);
 
   const [step, setStep] = useState<FlowStep>("rating");
@@ -169,31 +170,60 @@ function CustomerFlow({
     else if (step === "reviews") { setStep("mcq"); setMcqStep(questions.length - 1); }
   };
 
+  const fetchDynamicQuestion = async (index: number, prevQA: { question: string; answer: string; note?: string }[]) => {
+    try {
+      const res = await fetch("/api/ai/generate-mcq", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          industrySegment, subIndustry, businessName: business.name,
+          businessDescription: businessProfile.businessDescription,
+          servicesOffered: businessProfile.servicesOffered,
+          staffInfo: businessProfile.staffInfo,
+          businessHighlights: businessProfile.businessHighlights,
+          starRating,
+          questionIndex: index,
+          previousQA: prevQA,
+        }),
+      });
+      const data = await res.json();
+      if (data.question?.question && data.question?.options) return data.question;
+    } catch {}
+    return templateQuestions[index] || templateQuestions[0];
+  };
+
   const handleRatingNext = async () => {
     if (starRating === 0) return;
+    setLoadingNextQ(true);
     if (!questionsLoaded) {
-      try {
-        const res = await fetch("/api/ai/generate-mcq", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            industrySegment, subIndustry, businessName: business.name,
-            businessDescription: businessProfile.businessDescription,
-            servicesOffered: businessProfile.servicesOffered,
-            staffInfo: businessProfile.staffInfo,
-            businessHighlights: businessProfile.businessHighlights,
-          }),
-        });
-        const data = await res.json();
-        if (data.questions && data.questions.length >= 3) setQuestions(data.questions);
-      } catch {}
+      const firstQ = await fetchDynamicQuestion(0, []);
+      setQuestions([firstQ, templateQuestions[1], templateQuestions[2]]);
       setQuestionsLoaded(true);
     }
+    setLoadingNextQ(false);
     setStep("mcq");
   };
 
-  const handleMCQNext = () => {
+  const handleMCQNext = async () => {
     if (mcqStep < questions.length - 1) {
-      setMcqStep((prev) => prev + 1);
+      const nextIndex = mcqStep + 1;
+      setLoadingNextQ(true);
+
+      // Build previous Q&A context for dynamic question generation
+      const prevQA = questions.slice(0, mcqStep + 1).map((q) => ({
+        question: q.question,
+        answer: mcqAnswers[q.question] || "",
+        note: mcqNotes[q.question] || undefined,
+      }));
+
+      const nextQ = await fetchDynamicQuestion(nextIndex, prevQA);
+      setQuestions((prev) => {
+        const updated = [...prev];
+        updated[nextIndex] = nextQ;
+        return updated;
+      });
+
+      setLoadingNextQ(false);
+      setMcqStep(nextIndex);
     } else {
       setStep("generating");
       (async () => {
@@ -312,7 +342,7 @@ function CustomerFlow({
               rating={starRating} onRate={setStarRating} onNext={handleRatingNext}
               businessName={business.name} businessLogo={business.logo_url || undefined}
               locationArea={business.location_area} locationCity={business.location_city}
-              offerText={offerText}
+              offerText={offerText} loading={loadingNextQ}
             />
           )}
 
@@ -339,6 +369,7 @@ function CustomerFlow({
               onAnswer={(q, a) => setMcqAnswers((p) => ({ ...p, [q]: a }))}
               onNote={(q, n) => setMcqNotes((p) => ({ ...p, [q]: n }))}
               onNext={handleMCQNext}
+              loadingNext={loadingNextQ}
             />
           )}
 

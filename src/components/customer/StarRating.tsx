@@ -12,12 +12,13 @@ interface StarRatingProps {
   locationArea: string;
   locationCity: string;
   offerText: string;
+  loading?: boolean;
 }
 
 const ratingLabels = ["", "Poor", "Fair", "Good", "Very Good", "Excellent!"];
 const ratingColors = ["", "#DC2626", "#E77C1A", "#C5A044", "#15803D", "#166534"];
 
-export function StarRating({ rating, onRate, onNext, businessName, businessLogo, locationArea, locationCity, offerText }: StarRatingProps) {
+export function StarRating({ rating, onRate, onNext, businessName, businessLogo, locationArea, locationCity, offerText, loading }: StarRatingProps) {
   return (
     <div className="flex flex-col items-center px-6 pt-6 pb-6 flex-1">
       {/* Business logo */}
@@ -163,10 +164,12 @@ export function StarRating({ rating, onRate, onNext, businessName, businessLogo,
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={rating === 0}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#166534] to-[#15803D] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#166534]/25 active:shadow-md"
+          disabled={rating === 0 || loading}
+          className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#166534] to-[#15803D] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#166534]/25 active:shadow-md flex items-center justify-center gap-2"
         >
-          {rating === 0 ? "Rate to continue" : "Next →"}
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : rating === 0 ? "Rate to continue" : "Next →"}
         </motion.button>
         {rating > 0 && (
           <p className="text-[11px] text-[#8B9A7E] text-center mt-2.5 font-medium">

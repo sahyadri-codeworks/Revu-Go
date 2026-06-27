@@ -11,9 +11,10 @@ interface MCQChipsProps {
   onAnswer: (question: string, answer: string) => void;
   onNote: (question: string, note: string) => void;
   onNext: () => void;
+  loadingNext?: boolean;
 }
 
-export function MCQChips({ questions, currentStep, answers, notes, onAnswer, onNote, onNext }: MCQChipsProps) {
+export function MCQChips({ questions, currentStep, answers, notes, onAnswer, onNote, onNext, loadingNext }: MCQChipsProps) {
   const q = questions[currentStep];
   if (!q) return null;
 
@@ -105,10 +106,12 @@ export function MCQChips({ questions, currentStep, answers, notes, onAnswer, onN
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={onNext}
-          disabled={!currentAnswer && !notes[q.question]?.trim()}
+          disabled={(!currentAnswer && !notes[q.question]?.trim()) || loadingNext}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-[#166534] to-[#15803D] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed active:from-[#14532D] transition-all shadow-lg shadow-[#166534]/25"
         >
-          {isLast ? (
+          {loadingNext ? (
+            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : isLast ? (
             <>
               <Sparkles className="w-4.5 h-4.5" />
               Generate My Review
