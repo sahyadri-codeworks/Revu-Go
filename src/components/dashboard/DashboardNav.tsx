@@ -159,10 +159,9 @@ export function DashboardNav() {
                 </button>
                 <div className="h-px bg-[#F3F4F6] mx-3 my-1" />
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     setProfileDropdownOpen(false);
-                    await signOut();
-                    router.push("/login");
+                    window.location.href = "/auth/signout";
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#FEF2F2] transition-colors"
                 >
@@ -250,10 +249,9 @@ export function DashboardNav() {
                 Profile Settings
               </Link>
               <button
-                onClick={async () => {
+                onClick={() => {
                   setMobileOpen(false);
-                  await signOut();
-                  router.push("/login");
+                  window.location.href = "/auth/signout";
                 }}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-[#EF4444]/80 hover:bg-[#FEF2F2] transition-all"
               >

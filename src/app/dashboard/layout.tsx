@@ -73,14 +73,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, authLoading, router]);
 
-  if (authLoading || !user || appLoading) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   // If user has no business, check if they're a super admin first
   useEffect(() => {
     if (needsOnboarding && !appLoading && user) {
@@ -90,6 +82,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         .catch(() => {});
     }
   }, [needsOnboarding, appLoading, user, router]);
+
+  if (authLoading || !user || appLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFB] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#7C3AED] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (needsOnboarding) {
     return (
