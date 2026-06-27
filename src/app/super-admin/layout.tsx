@@ -101,7 +101,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             </div>
           </div>
           <button
-            onClick={async () => { await signOut(); router.push("/login"); }}
+            onClick={() => { window.location.href = "/auth/signout"; }}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-[#EF4444] font-medium hover:bg-[#FEF2F2] transition-colors"
           >
             <LogOut className="w-4 h-4" /> Sign Out
@@ -122,7 +122,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
 
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileOpen(false)}>
-          <div className="absolute left-0 top-14 bottom-0 w-[260px] bg-white border-r border-[#E5E7EB] p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute left-0 top-14 bottom-0 w-[260px] bg-white border-r border-[#E5E7EB] p-3 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
@@ -138,6 +138,25 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
                 );
               })}
             </nav>
+
+            <div className="mt-auto pt-4">
+              <div className="h-px bg-[#F3F4F6] mb-3" />
+              <div className="flex items-center gap-3 px-3 py-2 mb-2">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#166534] to-[#15803D] flex items-center justify-center text-white text-xs font-bold">
+                  {(profile?.full_name || "A").charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] text-[#111] font-medium truncate">{profile?.full_name || "Admin"}</p>
+                  <p className="text-[10px] text-[#9CA3AF] truncate">{profile?.email || ""}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => { setMobileOpen(false); window.location.href = "/auth/signout"; }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-[12px] text-[#EF4444] font-medium hover:bg-[#FEF2F2] transition-colors"
+              >
+                <LogOut className="w-4 h-4" /> Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}
