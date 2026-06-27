@@ -59,7 +59,7 @@ export function DashboardNav() {
         {/* Brand */}
         <div className="px-5 pt-6 pb-5">
           <div className="flex items-center gap-3">
-            <img src="/logo-name.png" alt="RevuGo" className="h-14 object-contain mix-blend-multiply" />
+            <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mix-blend-multiply" />
           </div>
         </div>
 
@@ -177,7 +177,7 @@ export function DashboardNav() {
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-b border-[#E5E7EB] h-14 flex items-center justify-between px-4">
         <div className="flex items-center gap-2.5">
-          <img src="/logo-name.png" alt="RevuGo" className="h-11 object-contain mix-blend-multiply" />
+          <img src="/logo-name.png" alt="RevuGo" className="h-14 object-contain mix-blend-multiply" />
         </div>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
