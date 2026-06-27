@@ -103,7 +103,7 @@ export function ReviewCards({
           <p className="text-[13px] text-[#6B7280] text-center mb-6 leading-relaxed">
             Crafting personalized reviews<br />based on your experience
           </p>
-          <div className="w-full max-w-[260px] mb-5">
+          <div className="w-full max-w-xs mb-5">
             <div className="flex items-center justify-between mb-1.5">
               <span className="text-[11px] text-[#6B7280] font-medium">{genStatus}</span>
               <span className="text-[11px] text-[#7C3AED] font-bold tabular-nums">{genProgress}%</span>
@@ -117,7 +117,7 @@ export function ReviewCards({
               />
             </div>
           </div>
-          <div className="w-full max-w-[260px] space-y-2">
+          <div className="w-full max-w-xs space-y-2">
             {[0, 1, 2].map((i) => (
               <motion.div key={i}
                 className="rounded-xl bg-white/70 border border-[#E5E7EB]/80 px-3.5 py-2.5 flex items-center gap-2.5"

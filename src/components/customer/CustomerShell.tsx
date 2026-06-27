@@ -13,7 +13,7 @@ interface CustomerShellProps {
 
 export function CustomerShell({ businessName, businessLogo, onBack, showBack = false, children }: CustomerShellProps) {
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-b from-[#F8F7FF] via-[#FDFAFE] to-[#F3F0FF] flex flex-col max-w-md mx-auto relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-b from-[#F8F7FF] via-[#FDFAFE] to-[#F3F0FF] flex flex-col max-w-lg mx-auto relative overflow-hidden">
       {/* Decorative blurs */}
       <div className="absolute top-0 right-0 w-80 h-80 bg-[#7C3AED]/[0.04] rounded-full blur-3xl translate-x-1/3 -translate-y-1/3 pointer-events-none" />
       <div className="absolute top-60 left-0 w-64 h-64 bg-[#2563EB]/[0.04] rounded-full blur-3xl -translate-x-1/3 pointer-events-none" />
