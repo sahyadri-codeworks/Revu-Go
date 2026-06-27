@@ -37,13 +37,13 @@ export function CustomerShell({ businessName, businessLogo, onBack, showBack = f
           {/* Business name in top bar */}
           <div className="flex items-center gap-2">
             {businessLogo && businessLogo.startsWith("http") ? (
-              <img src={businessLogo} alt={businessName} className="w-9 h-9 rounded-full object-cover border border-[#E5E7EB]" />
+              <img src={businessLogo} alt={businessName} className="w-16 h-16 rounded-full object-cover border-2 border-[#E5E7EB]" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center">
-                <span className="text-white text-[12px] font-bold">{businessName.charAt(0)}</span>
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center">
+                <span className="text-white text-[22px] font-bold">{businessName.charAt(0)}</span>
               </div>
             )}
-            <span className="text-[15px] font-bold text-[#1A1A2E] truncate max-w-[180px]">{businessName}</span>
+            <span className="text-[18px] font-bold text-[#1A1A2E] truncate max-w-[200px]">{businessName}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm border border-[#7C3AED]/10 shadow-sm">
