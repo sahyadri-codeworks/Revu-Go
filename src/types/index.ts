@@ -90,6 +90,25 @@ export interface PrivateFeedback {
   created_at: string;
 }
 
+export interface Complaint {
+  id: string;
+  business_id: string;
+  campaign_id?: string;
+  star_rating: number;
+  complaint_text: string;
+  is_anonymous: boolean;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  consent_given: boolean;
+  status: "open" | "in_progress" | "resolved" | "closed";
+  business_notes?: string;
+  session_token?: string;
+  mcq_answers?: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ScrapeJob {
   id: string;
   session_id: string;

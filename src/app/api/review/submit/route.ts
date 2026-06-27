@@ -82,6 +82,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    if (action === "submit-complaint") {
+      const {
+        business_id, campaign_id, star_rating, complaint_text,
+        is_anonymous, contact_name, contact_email, contact_phone,
+        consent_given, session_token, mcq_answers,
+      } = body;
+      if (!business_id || !complaint_text) {
+        return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      }
+
+      const { data, error } = await admin.from("complaints").insert({
+        business_id,
+        campaign_id: campaign_id || null,
+        star_rating: star_rating || 1,
+        complaint_text,
+        is_anonymous: is_anonymous ?? true,
+        contact_name: is_anonymous ? null : (contact_name || null),
+        contact_email: is_anonymous ? null : (contact_email || null),
+        contact_phone: is_anonymous ? null : (contact_phone || null),
+        consent_given: consent_given || false,
+        session_token: session_token || null,
+        mcq_answers: mcq_answers || {},
+        status: "open",
+      }).select("id").single();
+
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      return NextResponse.json({ id: data.id, ok: true });
+    }
+
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });

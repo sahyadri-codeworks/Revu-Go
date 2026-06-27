@@ -9,6 +9,7 @@ import { ReviewCards } from "@/components/customer/ReviewCards";
 import { ScratchCard } from "@/components/customer/ScratchCard";
 import { FinalReward } from "@/components/customer/FinalReward";
 import { PrivateFeedbackForm } from "@/components/customer/PrivateFeedbackForm";
+import { ComplaintForm } from "@/components/customer/ComplaintForm";
 import { getMCQQuestions, generateIndustryReviews } from "@/lib/mcq-templates";
 import type { Business, Campaign } from "@/types";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +21,8 @@ type FlowStep =
   | "mcq"
   | "generating"
   | "reviews"
+  | "complaint"
+  | "complaint-offer-review"
   | "google-redirect"
   | "did-you-post"
   | "ask-again"
@@ -152,6 +155,7 @@ function CustomerFlow({
   const [selectedReview, setSelectedReview] = useState<number | null>(null);
   const [finalReviewText, setFinalReviewText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isNegativeFeedback, setIsNegativeFeedback] = useState(false);
   const [couponCode] = useState(() => {
     const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
     return campaign ? `${campaign.coupon_prefix}-${suffix}` : `RF-${suffix}`;
@@ -193,23 +197,38 @@ function CustomerFlow({
     } else {
       setStep("generating");
       (async () => {
-        try {
-          const res = await fetch("/api/ai/generate-reviews", {
+        // Run sentiment analysis and review generation in parallel
+        const [sentimentRes, reviewsData] = await Promise.all([
+          fetch("/api/ai/analyze-sentiment", {
             method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              businessName: business.name, locationArea: business.location_area,
-              locationCity: business.location_city, industrySegment, subIndustry,
-              businessDescription: businessProfile.businessDescription,
-              servicesOffered: businessProfile.servicesOffered,
-              staffInfo: businessProfile.staffInfo,
-              businessHighlights: businessProfile.businessHighlights,
-              mcqAnswers, mcqNotes, starRating,
-            }),
-          });
-          const data = await res.json();
-          if (data.reviews && data.reviews.length >= 3) { setReviews(data.reviews); return; }
-        } catch {}
-        setReviews(generateIndustryReviews(business.name, business.location_area, business.location_city, industrySegment, mcqAnswers));
+            body: JSON.stringify({ starRating, mcqAnswers, mcqNotes }),
+          }).then(r => r.json()).catch(() => ({ isNegative: false })),
+
+          (async () => {
+            try {
+              const res = await fetch("/api/ai/generate-reviews", {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  businessName: business.name, locationArea: business.location_area,
+                  locationCity: business.location_city, industrySegment, subIndustry,
+                  businessDescription: businessProfile.businessDescription,
+                  servicesOffered: businessProfile.servicesOffered,
+                  staffInfo: businessProfile.staffInfo,
+                  businessHighlights: businessProfile.businessHighlights,
+                  mcqAnswers, mcqNotes, starRating,
+                }),
+              });
+              const data = await res.json();
+              if (data.reviews && data.reviews.length >= 3) return data.reviews;
+            } catch {}
+            return generateIndustryReviews(business.name, business.location_area, business.location_city, industrySegment, mcqAnswers);
+          })(),
+        ]);
+
+        setReviews(reviewsData);
+        if (sentimentRes.isNegative) {
+          setIsNegativeFeedback(true);
+        }
       })();
     }
   };
@@ -329,8 +348,67 @@ function CustomerFlow({
               onSelect={setSelectedReview}
               onPostToGoogle={handlePostToGoogle}
               isGenerating={step === "generating"} sessionToken={sessionToken}
-              onGeneratingDone={() => setStep("reviews")}
+              onGeneratingDone={() => setStep(isNegativeFeedback ? "complaint" : "reviews")}
             />
+          )}
+
+          {step === "complaint" && (
+            <ComplaintForm
+              businessName={business.name}
+              starRating={starRating}
+              onSubmit={async (data) => {
+                await fetch("/api/review/submit", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "submit-complaint",
+                    business_id: business.id,
+                    campaign_id: campaign?.id,
+                    star_rating: starRating,
+                    complaint_text: data.complaint_text,
+                    is_anonymous: data.is_anonymous,
+                    contact_name: data.contact_name,
+                    contact_email: data.contact_email,
+                    contact_phone: data.contact_phone,
+                    consent_given: data.consent_given,
+                    session_token: sessionToken,
+                    mcq_answers: mcqAnswers,
+                  }),
+                }).catch(() => {});
+              }}
+              onSkip={() => setStep("complaint-offer-review")}
+            />
+          )}
+
+          {step === "complaint-offer-review" && (
+            <div className="flex-1 flex flex-col items-center justify-center px-6 pb-5">
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-8">
+                <div className="text-[48px] mb-4">💬</div>
+                <h2 className="text-[20px] font-extrabold text-[#1A1A2E] mb-2">
+                  Would you like to share a review?
+                </h2>
+                <p className="text-[14px] text-[#6B7280] leading-relaxed max-w-[300px] mx-auto">
+                  If you&apos;d still like to share your experience on Google, we have some reviews ready for you. No pressure at all!
+                </p>
+              </motion.div>
+
+              <div className="w-full max-w-[300px] space-y-3">
+                <motion.button whileTap={{ scale: 0.98 }}
+                  onClick={() => setStep("reviews")}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-[15px] font-bold shadow-lg shadow-[#7C3AED]/25 flex items-center justify-center gap-2">
+                  Yes, show me reviews
+                </motion.button>
+
+                <motion.button whileTap={{ scale: 0.98 }}
+                  onClick={showReward}
+                  className="w-full py-4 rounded-2xl border-2 border-[#E5E7EB] text-[15px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors">
+                  No thanks, show my reward
+                </motion.button>
+
+                <p className="text-[11px] text-[#9CA3AF] text-center mt-2">
+                  Thank you for your honest feedback! 💜
+                </p>
+              </div>
+            </div>
           )}
 
           {/* ===== GOOGLE REDIRECT SCREEN ===== */}

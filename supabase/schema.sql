@@ -221,6 +221,43 @@ CREATE POLICY "Service role only" ON super_admins FOR ALL USING (true);
 -- Admin Logs: only service role manages this
 CREATE POLICY "Service role only" ON admin_logs FOR ALL USING (true);
 
+-- 12. Complaints (customer concerns)
+CREATE TABLE IF NOT EXISTS complaints (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  campaign_id UUID REFERENCES campaigns(id),
+  star_rating INT NOT NULL DEFAULT 1,
+  complaint_text TEXT NOT NULL DEFAULT '',
+  is_anonymous BOOLEAN NOT NULL DEFAULT true,
+  contact_name TEXT,
+  contact_email TEXT,
+  contact_phone TEXT,
+  consent_given BOOLEAN NOT NULL DEFAULT false,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  business_notes TEXT,
+  session_token TEXT,
+  mcq_answers JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_complaints_business_id ON complaints(business_id);
+CREATE INDEX IF NOT EXISTS idx_complaints_status ON complaints(status);
+
+ALTER TABLE complaints ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Business owners can view their complaints"
+  ON complaints FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+
+CREATE POLICY "Business owners can update their complaints"
+  ON complaints FOR UPDATE
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+
+CREATE POLICY "Service role can insert complaints"
+  ON complaints FOR INSERT
+  WITH CHECK (true);
+
 -- ============================================
 -- Seed: Default Plans
 -- ============================================

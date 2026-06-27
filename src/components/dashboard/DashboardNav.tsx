@@ -9,7 +9,7 @@ import {
   BarChart3,
   QrCode,
   Settings,
-
+  AlertTriangle,
   TicketCheck,
   LogOut,
 } from "lucide-react";
@@ -27,6 +27,7 @@ export function DashboardNav() {
     { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
     { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/dashboard/reviews", label: "Review Inbox", icon: MessageSquare },
+    { href: "/dashboard/complaints", label: "Customer Concerns", icon: AlertTriangle },
     { href: "/dashboard/coupons", label: "Verify Coupons", icon: TicketCheck },
     { href: "/dashboard/qr", label: "QR Flyer Manager", icon: QrCode },
     { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
