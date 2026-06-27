@@ -55,11 +55,15 @@ function LoginContent() {
         setError(err);
         setLoading(false);
       } else {
+        try {
+          const adminRes = await fetch("/api/super-admin?action=check-admin");
+          const adminData = await adminRes.json();
+          if (adminData.isAdmin) {
+            router.replace("/super-admin");
+            return;
+          }
+        } catch {}
         router.push(redirectTo);
-        fetch("/api/super-admin?action=check-admin")
-          .then(r => r.json())
-          .then(data => { if (data.isAdmin) router.replace("/super-admin"); })
-          .catch(() => {});
       }
     }
   };

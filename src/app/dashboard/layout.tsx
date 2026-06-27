@@ -81,7 +81,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Show onboarding modal if no business exists
+  // If user has no business, check if they're a super admin first
+  useEffect(() => {
+    if (needsOnboarding && !appLoading && user) {
+      fetch("/api/super-admin?action=check-admin")
+        .then((r) => r.json())
+        .then((data) => { if (data.isAdmin) router.replace("/super-admin"); })
+        .catch(() => {});
+    }
+  }, [needsOnboarding, appLoading, user, router]);
+
   if (needsOnboarding) {
     return (
       <div className="min-h-screen bg-[#F8FAFB] relative overflow-hidden">
