@@ -37,13 +37,13 @@ export function CustomerShell({ businessName, businessLogo, onBack, showBack = f
           {/* Business name in top bar */}
           <div className="flex items-center gap-2">
             {businessLogo && businessLogo.startsWith("http") ? (
-              <img src={businessLogo} alt={businessName} className="w-7 h-7 rounded-full object-cover border border-[#E5E7EB]" />
+              <img src={businessLogo} alt={businessName} className="w-9 h-9 rounded-full object-cover border border-[#E5E7EB]" />
             ) : (
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center">
-                <span className="text-white text-[10px] font-bold">{businessName.charAt(0)}</span>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center">
+                <span className="text-white text-[12px] font-bold">{businessName.charAt(0)}</span>
               </div>
             )}
-            <span className="text-[13px] font-semibold text-[#1A1A2E] truncate max-w-[160px]">{businessName}</span>
+            <span className="text-[15px] font-bold text-[#1A1A2E] truncate max-w-[180px]">{businessName}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/70 backdrop-blur-sm border border-[#7C3AED]/10 shadow-sm">
@@ -64,8 +64,8 @@ export function CustomerShell({ businessName, businessLogo, onBack, showBack = f
         transition={{ delay: 0.5 }}
         className="relative z-10 flex items-center justify-center px-4 py-4 gap-2 safe-bottom"
       >
-        <span className="text-[10px] text-[#9CA3AF] font-medium">Powered by</span>
-        <img src="/logo-name.png" alt="RevuGo" className="h-4 object-contain mix-blend-multiply" />
+        <span className="text-[11px] text-[#9CA3AF] font-medium">Powered by</span>
+        <img src="/logo-name.png" alt="RevuGo" className="h-7 object-contain mix-blend-multiply" />
       </motion.div>
     </div>
   );
