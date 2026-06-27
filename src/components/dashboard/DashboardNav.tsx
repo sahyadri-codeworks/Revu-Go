@@ -196,7 +196,7 @@ export function DashboardNav() {
       {/* Mobile nav overlay */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setMobileOpen(false)}>
-          <div className="absolute left-0 top-14 bottom-0 w-[272px] bg-white border-r border-[#E5E7EB] p-3" onClick={(e) => e.stopPropagation()}>
+          <div className="absolute left-0 top-14 bottom-0 w-[272px] bg-white border-r border-[#E5E7EB] p-3 flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="mb-4 p-3 rounded-xl bg-[#F8FAFB] border border-[#F3F4F6]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] flex items-center justify-center text-white font-bold text-sm">
@@ -232,6 +232,34 @@ export function DashboardNav() {
                 );
               })}
             </nav>
+
+            {/* Settings & Sign Out */}
+            <div className="mt-auto pt-4">
+              <div className="h-px bg-[#F3F4F6] mb-3" />
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
+                  pathname === "/dashboard/settings"
+                    ? "bg-[#7C3AED]/8 text-[#7C3AED]"
+                    : "text-[#6B7280] hover:text-[#111] hover:bg-[#F3F4F6]"
+                }`}
+              >
+                <Settings className={`w-[17px] h-[17px] ${pathname === "/dashboard/settings" ? "text-[#7C3AED]" : "text-[#9CA3AF]"}`} />
+                Profile Settings
+              </Link>
+              <button
+                onClick={async () => {
+                  setMobileOpen(false);
+                  await signOut();
+                  router.push("/login");
+                }}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium text-[#EF4444]/80 hover:bg-[#FEF2F2] transition-all"
+              >
+                <LogOut className="w-[17px] h-[17px] text-[#EF4444]/60" />
+                Sign Out
+              </button>
+            </div>
           </div>
         </div>
       )}
