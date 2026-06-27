@@ -312,20 +312,23 @@ function CustomerFlow({
 
   const handlePublished = async () => {
     if (campaign) {
-      const { data: row } = await supabase
-        .from("review_sessions")
-        .insert({
-          business_id: business.id,
-          campaign_id: campaign.id,
-          star_rating: starRating,
-          mcq_answers: mcqAnswers,
-          selected_review_text: selectedReview !== null ? reviews[selectedReview] : "",
-          session_token: sessionToken,
-          token_status: "PENDING",
-        })
-        .select("id")
-        .single();
-      if (row) setSessionId(row.id);
+      try {
+        const res = await fetch("/api/review/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create-session",
+            business_id: business.id,
+            campaign_id: campaign.id,
+            star_rating: starRating,
+            mcq_answers: mcqAnswers,
+            selected_review_text: selectedReview !== null ? reviews[selectedReview] : "",
+            session_token: sessionToken,
+          }),
+        });
+        const data = await res.json();
+        if (data.id) setSessionId(data.id);
+      } catch {}
     }
     setStep("verifying");
   };
@@ -336,30 +339,27 @@ function CustomerFlow({
 
   const handleScratchRevealed = useCallback(async () => {
     if (campaign && sessionId) {
-      await supabase.from("coupons").insert({
-        session_id: sessionId,
-        business_id: business.id,
-        campaign_id: campaign.id,
-        coupon_code: couponCode,
-        reward_type: campaign.reward_type || "own_discount",
-        reward_value: campaign.offer_text,
-        is_redeemed: false,
-        issued_at: new Date().toISOString(),
-        expires_at: campaign.expires_at,
-      });
-      const { count } = await supabase
-        .from("coupons")
-        .select("*", { count: "exact", head: true })
-        .eq("campaign_id", campaign.id);
-      await supabase
-        .from("campaigns")
-        .update({ redeemed_count: (count ?? 0) })
-        .eq("id", campaign.id);
+      try {
+        await fetch("/api/review/submit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "create-coupon",
+            session_id: sessionId,
+            business_id: business.id,
+            campaign_id: campaign.id,
+            coupon_code: couponCode,
+            reward_type: campaign.reward_type || "own_discount",
+            reward_value: campaign.offer_text,
+            expires_at: campaign.expires_at,
+          }),
+        });
+      } catch {}
     }
     setTimeout(() => {
       setStep("final");
     }, 1200);
-  }, [campaign, sessionId, business.id, couponCode, supabase]);
+  }, [campaign, sessionId, business.id, couponCode]);
 
   const offerText = campaign?.offer_text || "Leave a review and get a reward!";
   const expiryDate = campaign?.expires_at?.split("T")[0] || "2026-12-31";
@@ -398,13 +398,17 @@ function CustomerFlow({
               businessName={business.name}
               onSubmit={async (feedbackText) => {
                 if (campaign) {
-                  await supabase.from("private_feedback").insert({
-                    business_id: business.id,
-                    campaign_id: campaign.id,
-                    star_rating: starRating,
-                    feedback_text: feedbackText,
-                    is_read: false,
-                  });
+                  await fetch("/api/review/submit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "submit-feedback",
+                      business_id: business.id,
+                      campaign_id: campaign.id,
+                      star_rating: starRating,
+                      feedback_text: feedbackText,
+                    }),
+                  }).catch(() => {});
                 }
               }}
             />
