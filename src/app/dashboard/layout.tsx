@@ -87,7 +87,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="min-h-screen bg-[#F8FAFB] relative overflow-hidden">
         <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
           <div className="text-center max-w-md">
-            <img src="/logo-name.png" alt="RevuGo" className="h-14 object-contain mx-auto mb-5 mix-blend-multiply" />
+            <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mx-auto mb-5 mix-blend-multiply" />
             <h1 className="text-[22px] font-bold text-[#111] mb-2">Welcome to RevuGo</h1>
             <p className="text-[13px] text-[#6B7280] mb-6 leading-relaxed">
               Set up your business profile to get started with campaigns, reviews, and rewards.

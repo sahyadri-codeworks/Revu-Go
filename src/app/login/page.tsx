@@ -77,7 +77,7 @@ function LoginContent() {
       >
         <div className="text-center mb-8">
           <Link href="/" className="inline-block mb-6">
-            <img src="/logo-name.png" alt="RevuGo" className="h-16 object-contain mix-blend-multiply" />
+            <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mix-blend-multiply" />
           </Link>
           <h1 className="text-xl font-semibold text-[#111] tracking-[-0.02em]">
             {isSignUp ? "Create your account" : "Welcome back"}

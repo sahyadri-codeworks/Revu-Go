@@ -450,7 +450,7 @@ export default function QRPage() {
             </div>
 
             {/* RevuGo logo */}
-            <img src="/logo-name.png" alt="RevuGo" className="h-14 object-contain mix-blend-multiply mb-3" />
+            <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mix-blend-multiply mb-3" />
 
             {/* "Review us" */}
             <h4 className="text-[36px] font-extrabold bg-gradient-to-r from-[#7C3AED] to-[#2563EB] bg-clip-text text-transparent leading-tight mb-1">

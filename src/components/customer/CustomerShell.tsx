@@ -64,8 +64,8 @@ export function CustomerShell({ businessName, businessLogo, onBack, showBack = f
         transition={{ delay: 0.5 }}
         className="relative z-10 flex items-center justify-center px-4 py-4 gap-2 safe-bottom"
       >
-        <span className="text-[11px] text-[#9CA3AF] font-medium">Powered by</span>
-        <img src="/logo-name.png" alt="RevuGo" className="h-7 object-contain mix-blend-multiply" />
+        <span className="text-[12px] text-[#9CA3AF] font-medium">Powered by</span>
+        <img src="/logo-name.png" alt="RevuGo" className="h-10 object-contain mix-blend-multiply" />
       </motion.div>
     </div>
   );

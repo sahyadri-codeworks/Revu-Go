@@ -75,7 +75,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gradient-to-b from-[#EFF6FF] to-white flex flex-col">
       <div className="p-4">
         <div className="flex items-center gap-2">
-          <img src="/logo-name.png" alt="RevuGo" className="h-10 object-contain mix-blend-multiply" />
+          <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mix-blend-multiply" />
         </div>
       </div>
 
