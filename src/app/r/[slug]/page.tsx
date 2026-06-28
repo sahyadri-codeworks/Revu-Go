@@ -246,6 +246,7 @@ function CustomerFlow({
                   staffInfo: businessProfile.staffInfo,
                   businessHighlights: businessProfile.businessHighlights,
                   mcqAnswers, mcqNotes, starRating,
+                  businessId: business.id,
                 }),
               });
               const data = await res.json();
