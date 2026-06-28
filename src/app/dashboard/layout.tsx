@@ -3,7 +3,7 @@
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { LaunchCampaignModal } from "@/components/dashboard/LaunchCampaignModal";
 import { RegisterClientModal } from "@/components/dashboard/RegisterClientModal";
-import { Star, ShieldAlert, LogOut, Ban } from "lucide-react";
+import { Star, ShieldAlert, LogOut, Ban, CircleHelp } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { useAppState } from "@/lib/app-context";
@@ -18,6 +18,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/analytics": "Analytics",
   "/dashboard/qr": "QR Flyer Manager",
   "/dashboard/settings": "Profile Settings",
+  "/dashboard/help": "Help & Support",
 };
 
 const pageDescriptions: Record<string, string> = {
@@ -28,6 +29,7 @@ const pageDescriptions: Record<string, string> = {
   "/dashboard/analytics": "Deep insights into your review performance",
   "/dashboard/qr": "Generate and manage branded QR flyers",
   "/dashboard/settings": "Configure your business profile",
+  "/dashboard/help": "Raise issues related to the platform",
 };
 
 interface CampaignModalContextType {
@@ -230,6 +232,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Help button */}
+                <button
+                  onClick={() => router.push("/dashboard/help")}
+                  className="w-9 h-9 rounded-full border border-[#E5E7EB] bg-white flex items-center justify-center text-[#9CA3AF] hover:text-[#7C3AED] hover:border-[#7C3AED]/30 hover:bg-[#7C3AED]/5 transition-all"
+                  title="Help & Support"
+                >
+                  <CircleHelp className="w-[18px] h-[18px]" />
+                </button>
                 {/* Avg rating */}
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#7C3AED]/15 bg-[#7C3AED]/5">
                   <Star className="w-4 h-4 text-[#7C3AED] fill-[#7C3AED]" />

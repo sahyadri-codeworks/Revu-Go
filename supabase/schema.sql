@@ -258,6 +258,63 @@ CREATE POLICY "Service role can insert complaints"
   ON complaints FOR INSERT
   WITH CHECK (true);
 
+-- 13. Support Tickets
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+  subject TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- 14. Ticket Messages
+CREATE TABLE IF NOT EXISTS ticket_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+  sender_type TEXT NOT NULL CHECK (sender_type IN ('business', 'admin')),
+  sender_email TEXT,
+  message TEXT NOT NULL,
+  is_internal_note BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_support_tickets_business_id ON support_tickets(business_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_status ON support_tickets(status);
+CREATE INDEX IF NOT EXISTS idx_ticket_messages_ticket_id ON ticket_messages(ticket_id);
+
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ticket_messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Business owners can view their tickets"
+  ON support_tickets FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+
+CREATE POLICY "Business owners can create tickets"
+  ON support_tickets FOR INSERT
+  WITH CHECK (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+
+CREATE POLICY "Service role full access tickets"
+  ON support_tickets FOR ALL USING (true);
+
+CREATE POLICY "Business owners can view ticket messages"
+  ON ticket_messages FOR SELECT
+  USING (
+    is_internal_note = false AND
+    ticket_id IN (SELECT id FROM support_tickets WHERE business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()))
+  );
+
+CREATE POLICY "Business owners can add ticket messages"
+  ON ticket_messages FOR INSERT
+  WITH CHECK (
+    sender_type = 'business' AND
+    ticket_id IN (SELECT id FROM support_tickets WHERE business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()))
+  );
+
+CREATE POLICY "Service role full access messages"
+  ON ticket_messages FOR ALL USING (true);
+
 -- ============================================
 -- Seed: Default Plans
 -- ============================================

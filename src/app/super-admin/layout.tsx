@@ -14,11 +14,13 @@ import {
   Shield,
   Menu,
   X,
+  MessageSquareWarning,
 } from "lucide-react";
 
 const navItems = [
   { href: "/super-admin", label: "Overview", icon: LayoutDashboard },
   { href: "/super-admin/accounts", label: "Accounts", icon: Users },
+  { href: "/super-admin/issues", label: "Customer Issues", icon: MessageSquareWarning },
   { href: "/super-admin/plans", label: "Plans & Billing", icon: CreditCard },
   { href: "/super-admin/subscriptions", label: "Subscriptions", icon: Receipt },
   { href: "/super-admin/analytics", label: "Analytics", icon: BarChart3 },
