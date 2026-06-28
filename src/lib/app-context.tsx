@@ -101,6 +101,8 @@ function dbRowToBusiness(row: Record<string, unknown>): Business {
     services_offered: (row.services_offered as string) || "",
     staff_info: (row.staff_info as string) || "",
     business_highlights: (row.business_highlights as string) || "",
+    industry_segment: (row.industry_segment as string) || "",
+    sub_industry: (row.sub_industry as string) || "",
   };
 }
 
@@ -499,10 +501,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dbFields.location_area = data.location_area;
       if (data.location_city !== undefined)
         dbFields.location_city = data.location_city;
-      if ((data as Record<string, unknown>).industry_segment !== undefined)
-        dbFields.industry_segment = (data as Record<string, unknown>).industry_segment;
-      if ((data as Record<string, unknown>).sub_industry !== undefined)
-        dbFields.sub_industry = (data as Record<string, unknown>).sub_industry;
+      if (data.industry_segment !== undefined)
+        dbFields.industry_segment = data.industry_segment;
+      if (data.sub_industry !== undefined)
+        dbFields.sub_industry = data.sub_industry;
       if (data.business_description !== undefined)
         dbFields.business_description = data.business_description;
       if (data.services_offered !== undefined)

@@ -21,8 +21,8 @@ export default function SettingsPage() {
   const router = useRouter();
 
   const [businessName, setBusinessName] = useState(business?.name || "");
-  const [industry, setIndustry] = useState("");
-  const [subIndustry, setSubIndustry] = useState("");
+  const [industry, setIndustry] = useState(business?.industry_segment || "");
+  const [subIndustry, setSubIndustry] = useState(business?.sub_industry || "");
   const [area, setArea] = useState(business?.location_area || "");
   const [city, setCity] = useState(business?.location_city || "");
   const [logoUrl, setLogoUrl] = useState(business?.logo_url || "");
@@ -51,7 +51,7 @@ export default function SettingsPage() {
       services_offered: servicesOffered,
       staff_info: staffInfo,
       business_highlights: businessHighlights,
-    } as Partial<Business> & Record<string, unknown>);
+    });
     toast.success("Profile changes saved", { style: toastStyle });
   };
 

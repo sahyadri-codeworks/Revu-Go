@@ -20,6 +20,8 @@ export interface Business {
   services_offered?: string;
   staff_info?: string;
   business_highlights?: string;
+  industry_segment?: string;
+  sub_industry?: string;
 }
 
 export type BusinessCategory =
