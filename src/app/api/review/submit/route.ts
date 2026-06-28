@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "create-session") {
       const { business_id, campaign_id, star_rating, mcq_answers, selected_review_text, session_token } = body;
-      if (!business_id || !campaign_id || !star_rating || !session_token) {
+      if (!business_id || !star_rating || !session_token) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
         .from("review_sessions")
         .insert({
           business_id,
-          campaign_id,
+          campaign_id: campaign_id || null,
           star_rating,
           mcq_answers: mcq_answers || {},
           selected_review_text: selected_review_text || "",

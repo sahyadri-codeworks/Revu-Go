@@ -43,6 +43,13 @@ interface AppContextType extends AppState {
     maxPayouts: number;
     expiry: string;
   }) => void;
+  updateCampaign: (id: string, data: {
+    title: string;
+    offerText: string;
+    couponPrefix: string;
+    maxPayouts: number;
+    expiry: string;
+  }) => void;
   deleteCampaign: (id: string) => void;
   toggleCampaign: (id: string) => void;
   registerBusiness: (data: RegisterData) => Promise<void>;
@@ -402,6 +409,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.business, supabase]
   );
 
+  const updateCampaign = useCallback(
+    async (id: string, data: {
+      title: string;
+      offerText: string;
+      couponPrefix: string;
+      maxPayouts: number;
+      expiry: string;
+    }) => {
+      const { error } = await supabase
+        .from("campaigns")
+        .update({
+          title: data.title,
+          offer_text: data.offerText,
+          coupon_prefix: data.couponPrefix,
+          max_redemptions: data.maxPayouts,
+          expires_at: data.expiry
+            ? new Date(data.expiry).toISOString()
+            : undefined,
+        })
+        .eq("id", id);
+      if (error) {
+        console.error("Campaign update failed:", error.message);
+        return;
+      }
+      setState((prev) => ({
+        ...prev,
+        campaigns: prev.campaigns.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                title: data.title,
+                offer_text: data.offerText,
+                coupon_prefix: data.couponPrefix,
+                max_redemptions: data.maxPayouts,
+                expires_at: data.expiry
+                  ? new Date(data.expiry).toISOString()
+                  : c.expires_at,
+              }
+            : c
+        ),
+      }));
+    },
+    [supabase]
+  );
+
   const deleteCampaign = useCallback(
     async (id: string) => {
       const { error } = await supabase.from("campaigns").delete().eq("id", id);
@@ -611,6 +663,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         ...state,
         addCampaign,
+        updateCampaign,
         deleteCampaign,
         toggleCampaign,
         registerBusiness,

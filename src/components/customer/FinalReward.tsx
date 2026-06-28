@@ -9,9 +9,10 @@ interface FinalRewardProps {
   rewardText: string;
   businessName: string;
   expiryDate: string;
+  hasCoupon?: boolean;
 }
 
-export function FinalReward({ couponCode, rewardText, businessName, expiryDate }: FinalRewardProps) {
+export function FinalReward({ couponCode, rewardText, businessName, expiryDate, hasCoupon = true }: FinalRewardProps) {
   const [copied, setCopied] = useState(false);
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
@@ -29,6 +30,47 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate }
     0,
     Math.ceil((new Date(expiryDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   );
+
+  if (!hasCoupon) {
+    return (
+      <div className="flex flex-col items-center justify-center px-6 pt-8 pb-5 flex-1">
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 200, damping: 12 }}
+          className="w-20 h-20 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#6D28D9] flex items-center justify-center shadow-xl shadow-[#7C3AED]/25 mb-5"
+        >
+          <CheckCircle className="w-10 h-10 text-white" />
+        </motion.div>
+
+        <motion.h2
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-[24px] font-extrabold text-[#1A1A2E] mb-2 text-center"
+        >
+          Thank You! 🙏
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-[14px] text-[#6B7280] text-center leading-relaxed max-w-[280px]"
+        >
+          Your feedback means a lot to <span className="text-[#7C3AED] font-semibold">{businessName}</span>. We truly appreciate you taking the time to share your experience.
+        </motion.p>
+
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="mt-8 text-[11px] text-[#9CA3AF] text-center"
+        >
+          You can close this page now
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col items-center px-6 pt-8 pb-5 flex-1">

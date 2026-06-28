@@ -38,6 +38,7 @@ export default function CustomerReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [hasCampaigns, setHasCampaigns] = useState(false);
   const [industrySegment, setIndustrySegment] = useState("");
   const [subIndustry, setSubIndustry] = useState("");
   const [businessProfile, setBusinessProfile] = useState({
@@ -77,18 +78,23 @@ export default function CustomerReviewPage() {
         businessHighlights: biz.business_highlights || "",
       });
 
-      const { data: camp } = await supabase
+      const { data: camps } = await supabase
         .from("campaigns").select("*")
         .eq("business_id", biz.id).eq("is_active", true)
-        .order("created_at", { ascending: false }).limit(1).single();
+        .order("created_at", { ascending: false });
 
-      if (camp) {
+      const activeCamps = (camps || []).filter(
+        (c) => new Date(c.expires_at) >= new Date()
+      );
+      if (activeCamps.length > 0) {
+        setHasCampaigns(true);
+        const picked = activeCamps[Math.floor(Math.random() * activeCamps.length)];
         setCampaign({
-          id: camp.id, business_id: camp.business_id, title: camp.title,
-          offer_text: camp.offer_text, coupon_prefix: camp.coupon_prefix,
-          reward_type: camp.reward_type || "own_discount", is_active: camp.is_active,
-          max_redemptions: camp.max_redemptions, redeemed_count: camp.redeemed_count || 0,
-          starts_at: camp.starts_at, expires_at: camp.expires_at, created_at: camp.created_at,
+          id: picked.id, business_id: picked.business_id, title: picked.title,
+          offer_text: picked.offer_text, coupon_prefix: picked.coupon_prefix,
+          reward_type: picked.reward_type || "own_discount", is_active: picked.is_active,
+          max_redemptions: picked.max_redemptions, redeemed_count: picked.redeemed_count || 0,
+          starts_at: picked.starts_at, expires_at: picked.expires_at, created_at: picked.created_at,
         });
       }
       setLoading(false);
@@ -268,13 +274,13 @@ function CustomerFlow({
   const handleReviewSelected = async (reviewText: string) => {
     setFinalReviewText(reviewText);
 
-    if (campaign && !sessionId) {
+    if (!sessionId) {
       try {
         const res = await fetch("/api/review/submit", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "create-session",
-            business_id: business.id, campaign_id: campaign.id,
+            business_id: business.id, campaign_id: campaign?.id || null,
             star_rating: starRating, mcq_answers: mcqAnswers,
             selected_review_text: reviewText, session_token: sessionToken,
           }),
@@ -297,10 +303,13 @@ function CustomerFlow({
     setTimeout(() => setStep("did-you-post"), 2000);
   };
 
-  // Create coupon and show scratch card
   const showReward = useCallback(async () => {
-    setStep("scratch");
-  }, []);
+    if (campaign) {
+      setStep("scratch");
+    } else {
+      setStep("final");
+    }
+  }, [campaign]);
 
   const handleScratchRevealed = useCallback(async () => {
     if (campaign && sessionId) {
@@ -320,7 +329,7 @@ function CustomerFlow({
     setTimeout(() => setStep("final"), 1200);
   }, [campaign, sessionId, business.id, couponCode]);
 
-  const offerText = campaign?.offer_text || "Leave a review and get a reward!";
+  const offerText = campaign?.offer_text || "Share your experience with us!";
   const expiryDate = campaign?.expires_at?.split("T")[0] || "2026-12-31";
 
   return (
@@ -429,7 +438,7 @@ function CustomerFlow({
                 <motion.button whileTap={{ scale: 0.98 }}
                   onClick={showReward}
                   className="w-full py-4 rounded-2xl border-2 border-[#E5E7EB] text-[15px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors">
-                  No thanks, show my reward
+                  {campaign ? "No thanks, show my reward" : "No thanks, I'm done"}
                 </motion.button>
 
                 <p className="text-[11px] text-[#9CA3AF] text-center mt-2">
@@ -496,7 +505,7 @@ function CustomerFlow({
 
                 <motion.button whileTap={{ scale: 0.98 }} onClick={showReward}
                   className="w-full py-3.5 rounded-2xl border-2 border-[#E5E7EB] text-[14px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors">
-                  Skip, show my reward
+                  {campaign ? "Skip, show my reward" : "Skip"}
                 </motion.button>
 
                 <button onClick={() => { try { navigator.clipboard.writeText(finalReviewText); } catch {} }}
@@ -520,7 +529,9 @@ function CustomerFlow({
                 Did you post your review on Google?
               </h2>
               <p className="text-[13px] text-[#6B7280] text-center mb-8 max-w-[280px]">
-                We&apos;d love to know! Your reward is waiting for you either way 🎉
+                {campaign
+                  ? "We'd love to know! Your reward is waiting for you either way 🎉"
+                  : "We'd love to know! Thank you for sharing your experience 🎉"}
               </p>
 
               <div className="w-full max-w-[300px] space-y-3">
@@ -564,11 +575,11 @@ function CustomerFlow({
 
                 <motion.button whileTap={{ scale: 0.98 }} onClick={showReward}
                   className="w-full py-4 rounded-2xl border-2 border-[#E5E7EB] text-[15px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors">
-                  Maybe later, show my reward
+                  {campaign ? "Maybe later, show my reward" : "Maybe later"}
                 </motion.button>
 
                 <p className="text-[11px] text-[#9CA3AF] text-center mt-2">
-                  Thank you for your time! You&apos;ll still get your reward 💜
+                  {campaign ? "Thank you for your time! You'll still get your reward 💜" : "Thank you for your time! 💜"}
                 </p>
               </div>
             </div>
@@ -584,6 +595,7 @@ function CustomerFlow({
           {step === "final" && (
             <FinalReward couponCode={couponCode} rewardText={offerText}
               businessName={business.name} expiryDate={expiryDate}
+              hasCoupon={!!campaign}
             />
           )}
         </motion.div>

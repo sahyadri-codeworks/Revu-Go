@@ -373,15 +373,7 @@ export default function QRPage() {
     finally { setDownloading(false); }
   };
 
-  if (campaigns.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <div className="bg-white border border-[#E5E7EB] rounded-xl p-12 text-center max-w-md">
-          <p className="text-[#6B7280] text-sm">No campaigns available — create a campaign first to generate QR flyers</p>
-        </div>
-      </div>
-    );
-  }
+  const hasCampaigns = campaigns.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto">

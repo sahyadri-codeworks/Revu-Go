@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS campaigns (
 CREATE TABLE IF NOT EXISTS review_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   business_id UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-  campaign_id UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+  campaign_id UUID REFERENCES campaigns(id) ON DELETE SET NULL,
   star_rating INTEGER NOT NULL CHECK (star_rating BETWEEN 1 AND 5),
   mcq_answers JSONB DEFAULT '{}',
   selected_review_text TEXT DEFAULT '',
