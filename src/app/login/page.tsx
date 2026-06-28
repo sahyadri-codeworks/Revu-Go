@@ -191,7 +191,10 @@ function LoginContent() {
           </p>
 
           <p className="text-[10px] text-center text-[#9CA3AF]">
-            By continuing, you agree to our Terms of Service and Privacy Policy
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="text-[#7C3AED] hover:underline">Terms of Service</Link>
+            {" "}and{" "}
+            <Link href="/privacy" className="text-[#7C3AED] hover:underline">Privacy Policy</Link>
           </p>
         </div>
       </motion.div>
