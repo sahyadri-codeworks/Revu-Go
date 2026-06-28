@@ -12,6 +12,7 @@ export default function ImpersonateSessionPage() {
     const accessToken = params.get("access_token");
     const refreshToken = params.get("refresh_token");
     const businessName = params.get("business_name");
+    const adminUrl = params.get("admin_url");
 
     if (!accessToken || !refreshToken) {
       setStatus("Invalid session tokens.");
@@ -32,7 +33,7 @@ export default function ImpersonateSessionPage() {
 
       sessionStorage.setItem(
         "rf_impersonating",
-        JSON.stringify({ businessName: businessName || "Unknown" })
+        JSON.stringify({ businessName: businessName || "Unknown", adminUrl: adminUrl || "" })
       );
 
       window.location.href = "/dashboard";

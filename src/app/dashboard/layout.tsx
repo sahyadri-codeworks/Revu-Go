@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { sessions, addCampaign, needsOnboarding, loading: appLoading, registerBusiness, business } = useAppState();
 
   const openModal = useCallback(() => setCampaignModalOpen(true), []);
-  const [impersonating, setImpersonating] = useState<{ businessName: string; adminReturn: string } | null>(null);
+  const [impersonating, setImpersonating] = useState<{ businessName: string; adminUrl?: string } | null>(null);
 
   useEffect(() => {
     try {
@@ -62,21 +62,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   const exitImpersonation = async () => {
+    const adminUrl = impersonating?.adminUrl;
     sessionStorage.removeItem("rf_impersonating");
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
-    const savedAdmin = sessionStorage.getItem("rf_admin_session");
-    if (savedAdmin) {
-      const tokens = JSON.parse(savedAdmin);
-      sessionStorage.removeItem("rf_admin_session");
-      await supabase.auth.setSession({
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-      });
-      window.location.href = "/super-admin";
+    sessionStorage.removeItem("rf_admin_session");
+    await supabase.auth.signOut();
+    if (adminUrl) {
+      window.location.href = adminUrl;
     } else {
-      await supabase.auth.signOut();
-      window.location.href = "/login";
+      window.close();
     }
   };
 
@@ -86,15 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, authLoading, router]);
 
-  // If user has no business, check if they're a super admin first
-  useEffect(() => {
-    if (needsOnboarding && !appLoading && user) {
-      fetch("/api/super-admin?action=check-admin")
-        .then((r) => r.json())
-        .then((data) => { if (data.isAdmin) router.replace("/super-admin"); })
-        .catch(() => {});
-    }
-  }, [needsOnboarding, appLoading, user, router]);
+  // removed super-admin redirect — admin uses separate app
 
   if (authLoading || !user || appLoading) {
     return (
