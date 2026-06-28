@@ -63,8 +63,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     sessionStorage.removeItem("rf_impersonating");
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
-    await supabase.auth.signOut();
-    window.close();
+    const savedAdmin = sessionStorage.getItem("rf_admin_session");
+    if (savedAdmin) {
+      const tokens = JSON.parse(savedAdmin);
+      sessionStorage.removeItem("rf_admin_session");
+      await supabase.auth.setSession({
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+      });
+      window.location.href = "/super-admin";
+    } else {
+      await supabase.auth.signOut();
+      window.location.href = "/login";
+    }
   };
 
   useEffect(() => {

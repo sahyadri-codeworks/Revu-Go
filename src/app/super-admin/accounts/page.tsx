@@ -176,6 +176,15 @@ export default function AccountsPage() {
         return;
       }
       if (data.accessToken) {
+        const { createClient } = await import("@/lib/supabase/client");
+        const supabase = createClient();
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          sessionStorage.setItem("rf_admin_session", JSON.stringify({
+            access_token: sessionData.session.access_token,
+            refresh_token: sessionData.session.refresh_token,
+          }));
+        }
         const hash = `#access_token=${data.accessToken}&refresh_token=${data.refreshToken}&business_name=${encodeURIComponent(a.name)}`;
         window.open(`/impersonate-session${hash}`, "_blank");
       }
