@@ -93,23 +93,43 @@ export default function AnalyticsPage() {
   const neutralPct = sentimentTotal > 0 ? Math.round((neutral / sentimentTotal) * 100) : 0;
   const negativePct = sentimentTotal > 0 ? Math.round((negative / sentimentTotal) * 100) : 0;
 
-  // Keyword extraction from MCQ answers
-  const keywordCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+  // Keyword extraction with question context and rating data
+  const keywordInsights = useMemo(() => {
+    const map: Record<string, { count: number; question: string; ratingSum: number }> = {};
     filtered.forEach((s) => {
       if (s.mcq_answers && typeof s.mcq_answers === "object") {
-        Object.values(s.mcq_answers).forEach((answer) => {
+        Object.entries(s.mcq_answers).forEach(([question, answer]) => {
           if (typeof answer === "string" && answer.trim()) {
             const key = answer.trim();
-            counts[key] = (counts[key] || 0) + 1;
+            if (!map[key]) map[key] = { count: 0, question, ratingSum: 0 };
+            map[key].count++;
+            map[key].ratingSum += s.star_rating;
           }
         });
       }
     });
-    return Object.entries(counts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 12);
-  }, [filtered]);
+    return Object.entries(map)
+      .map(([keyword, data]) => ({
+        keyword,
+        count: data.count,
+        question: data.question,
+        avgRating: data.ratingSum / data.count,
+        pct: totalSessions > 0 ? Math.round((data.count / totalSessions) * 100) : 0,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+  }, [filtered, totalSessions]);
+
+  // Group keywords by question
+  const keywordsByQuestion = useMemo(() => {
+    const groups: Record<string, typeof keywordInsights> = {};
+    keywordInsights.forEach((kw) => {
+      const q = kw.question.length > 50 ? kw.question.slice(0, 50) + "..." : kw.question;
+      if (!groups[q]) groups[q] = [];
+      groups[q].push(kw);
+    });
+    return Object.entries(groups);
+  }, [keywordInsights]);
 
   // Rating trend (daily averages for the period)
   const ratingTrend = useMemo(() => {
@@ -549,53 +569,106 @@ export default function AnalyticsPage() {
             </motion.div>
           </div>
 
-          {/* Popular Keywords / MCQ Choices */}
+          {/* Customer Feedback Insights */}
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.4 }}
             className="glass-card rounded-2xl p-6"
           >
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-2">
               <div>
-                <h3 className="text-[14px] text-[#111] font-semibold">Popular Keywords</h3>
+                <h3 className="text-[14px] text-[#111] font-semibold">Customer Feedback Insights</h3>
                 <p className="text-[11px] text-[#9CA3AF] mt-0.5">
-                  Most selected feedback choices by customers
+                  What customers are saying — {TIME_LABELS[timeRange].toLowerCase()}
                 </p>
               </div>
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#3B82F6]/5 border border-[#3B82F6]/10">
                 <Hash className="w-3 h-3 text-[#3B82F6]" />
-                <span className="text-[10px] text-[#3B82F6] font-medium">{keywordCounts.length} Keywords</span>
+                <span className="text-[10px] text-[#3B82F6] font-medium">{keywordInsights.length} Topics</span>
               </div>
             </div>
 
-            {keywordCounts.length > 0 ? (
-              <div className="flex flex-wrap gap-2.5">
-                {keywordCounts.map(([keyword, count], i) => {
-                  const maxKw = keywordCounts[0][1];
-                  const intensity = Math.max(0.15, count / maxKw);
-                  return (
-                    <motion.div
-                      key={keyword}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.4 + i * 0.03, duration: 0.3 }}
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#E5E7EB] bg-white hover:shadow-sm transition-shadow"
-                      style={{ background: `rgba(124, 58, 237, ${intensity * 0.08})` }}
-                    >
-                      <span className="text-[13px] text-[#374151] font-medium">{keyword}</span>
-                      <span className="text-[11px] text-white font-bold bg-[#7C3AED] rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0">
-                        {count}
-                      </span>
-                    </motion.div>
-                  );
-                })}
+            {/* Top insight callout */}
+            {keywordInsights.length > 0 && (
+              <div className="bg-gradient-to-r from-[#7C3AED]/5 to-[#3B82F6]/5 rounded-xl p-3.5 mb-5 border border-[#7C3AED]/10">
+                <p className="text-[12px] text-[#374151] leading-relaxed">
+                  <span className="font-bold text-[#7C3AED]">{keywordInsights[0].count} customer{keywordInsights[0].count !== 1 ? "s" : ""}</span> chose
+                  <span className="font-semibold text-[#111]"> &ldquo;{keywordInsights[0].keyword}&rdquo;</span> as their top feedback
+                  {keywordInsights[0].avgRating >= 4 ? (
+                    <span> — with an avg rating of <span className="font-bold text-[#10B981]">{keywordInsights[0].avgRating.toFixed(1)}★</span></span>
+                  ) : keywordInsights[0].avgRating <= 2 ? (
+                    <span> — with a low avg rating of <span className="font-bold text-[#EF4444]">{keywordInsights[0].avgRating.toFixed(1)}★</span></span>
+                  ) : (
+                    <span> — with an avg rating of <span className="font-bold text-[#F59E0B]">{keywordInsights[0].avgRating.toFixed(1)}★</span></span>
+                  )}
+                  {keywordInsights.length > 1 && (
+                    <span>, followed by <span className="font-semibold text-[#111]">&ldquo;{keywordInsights[1].keyword}&rdquo;</span> ({keywordInsights[1].count})</span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {keywordInsights.length > 0 ? (
+              <div className="space-y-6">
+                {keywordsByQuestion.map(([question, keywords], gi) => (
+                  <motion.div
+                    key={question}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + gi * 0.08, duration: 0.3 }}
+                  >
+                    <p className="text-[11px] text-[#9CA3AF] font-medium mb-3 flex items-center gap-2">
+                      <span className="w-4 h-4 rounded-md bg-[#7C3AED]/10 flex items-center justify-center text-[9px] text-[#7C3AED] font-bold">Q</span>
+                      {question}
+                    </p>
+                    <div className="space-y-2">
+                      {keywords.map((kw, ki) => {
+                        const maxInGroup = keywords[0].count;
+                        const barWidth = (kw.count / maxInGroup) * 100;
+                        const ratingColor = kw.avgRating >= 4 ? "#10B981" : kw.avgRating >= 3 ? "#F59E0B" : "#EF4444";
+                        return (
+                          <motion.div
+                            key={kw.keyword}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.45 + gi * 0.08 + ki * 0.04, duration: 0.3 }}
+                            className="group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-[13px] text-[#374151] font-medium truncate">{kw.keyword}</span>
+                                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: ratingColor }}>
+                                      {kw.avgRating.toFixed(1)}★
+                                    </span>
+                                    <span className="text-[12px] text-[#111] font-bold tabular-nums">{kw.count}</span>
+                                    <span className="text-[10px] text-[#9CA3AF] tabular-nums">({kw.pct}%)</span>
+                                  </div>
+                                </div>
+                                <div className="h-2 bg-[#F3F4F6] rounded-full overflow-hidden">
+                                  <motion.div
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${barWidth}%` }}
+                                    transition={{ delay: 0.5 + gi * 0.08 + ki * 0.04, duration: 0.6 }}
+                                    className="h-full rounded-full bg-gradient-to-r from-[#7C3AED] to-[#A78BFA]"
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             ) : (
               <div className="py-8 text-center">
                 <BarChart3 className="w-8 h-8 text-[#D1D5DB] mx-auto mb-2" />
-                <p className="text-[13px] text-[#9CA3AF]">No keyword data yet</p>
-                <p className="text-[11px] text-[#D1D5DB]">Keywords will appear as customers give feedback</p>
+                <p className="text-[13px] text-[#9CA3AF]">No feedback data yet</p>
+                <p className="text-[11px] text-[#D1D5DB]">Insights will appear as customers give feedback</p>
               </div>
             )}
           </motion.div>
