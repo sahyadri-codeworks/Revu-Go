@@ -275,7 +275,7 @@ export function ReviewCards({
           disabled={selectedIndex === null}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#7C3AED]/25"
         >
-          Continue to Post on Google
+          Select & Continue
         </motion.button>
       </div>
     </div>
