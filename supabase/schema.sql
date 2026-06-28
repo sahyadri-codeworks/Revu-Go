@@ -171,55 +171,74 @@ ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE super_admins ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_logs ENABLE ROW LEVEL SECURITY;
 
--- Profiles: users can read/update their own profile
+-- Profiles: users can read/update their own profile only
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 
--- Businesses: owners can manage their own business
+-- Businesses: owners can manage their own business, public can view active (for review flow)
 CREATE POLICY "Owners can view own business" ON businesses FOR SELECT USING (auth.uid() = owner_id);
-CREATE POLICY "Owners can update own business" ON businesses FOR UPDATE USING (auth.uid() = owner_id);
+CREATE POLICY "Owners can update own business" ON businesses FOR UPDATE USING (auth.uid() = owner_id) WITH CHECK (auth.uid() = owner_id);
 CREATE POLICY "Owners can insert business" ON businesses FOR INSERT WITH CHECK (auth.uid() = owner_id);
-CREATE POLICY "Public can view active businesses by slug" ON businesses FOR SELECT USING (is_active = true);
+CREATE POLICY "Public can view active businesses" ON businesses FOR SELECT USING (is_active = true);
 
--- Campaigns: business owners can manage campaigns
-CREATE POLICY "Owners can view campaigns" ON campaigns FOR SELECT USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
-CREATE POLICY "Owners can insert campaigns" ON campaigns FOR INSERT WITH CHECK (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
-CREATE POLICY "Owners can update campaigns" ON campaigns FOR UPDATE USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+-- Prevent direct plan field changes by non-service-role
+CREATE OR REPLACE FUNCTION prevent_plan_self_change()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.plan IS DISTINCT FROM OLD.plan THEN
+    IF current_setting('role') != 'service_role' THEN
+      NEW.plan := OLD.plan;
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER trg_prevent_plan_change
+  BEFORE UPDATE ON businesses
+  FOR EACH ROW EXECUTE FUNCTION prevent_plan_self_change();
+
+-- Campaigns: business owners can manage campaigns, public can view active (for review flow)
+CREATE POLICY "Owners can manage campaigns" ON campaigns FOR ALL
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()))
+  WITH CHECK (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 CREATE POLICY "Public can view active campaigns" ON campaigns FOR SELECT USING (is_active = true);
 
--- Review Sessions: business owners can view, public can insert
-CREATE POLICY "Owners can view review sessions" ON review_sessions FOR SELECT USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
-CREATE POLICY "Anyone can insert review sessions" ON review_sessions FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can update review sessions" ON review_sessions FOR UPDATE USING (true);
+-- Review Sessions: owners can view, inserts via service_role API only
+CREATE POLICY "Owners can view review sessions" ON review_sessions FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 
--- Coupons: business owners can view/update, public can insert
-CREATE POLICY "Owners can view coupons" ON coupons FOR SELECT USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+-- Coupons: owners can view/update, inserts allowed for coupon generation
+CREATE POLICY "Owners can view coupons" ON coupons FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 CREATE POLICY "Anyone can insert coupons" ON coupons FOR INSERT WITH CHECK (true);
-CREATE POLICY "Owners can update coupons" ON coupons FOR UPDATE USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
-CREATE POLICY "Public can view own coupon" ON coupons FOR SELECT USING (true);
+CREATE POLICY "Owners can update coupons" ON coupons FOR UPDATE
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 
--- Private Feedback: business owners can view, public can insert
-CREATE POLICY "Owners can view private feedback" ON private_feedback FOR SELECT USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+-- Private Feedback: owners can view/update, inserts allowed
+CREATE POLICY "Owners can view private feedback" ON private_feedback FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 CREATE POLICY "Anyone can insert private feedback" ON private_feedback FOR INSERT WITH CHECK (true);
-CREATE POLICY "Owners can update private feedback" ON private_feedback FOR UPDATE USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+CREATE POLICY "Owners can update private feedback" ON private_feedback FOR UPDATE
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 
--- Scrape Jobs
-CREATE POLICY "Owners can view scrape jobs" ON scrape_jobs FOR SELECT USING (true);
-CREATE POLICY "Anyone can insert scrape jobs" ON scrape_jobs FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can update scrape jobs" ON scrape_jobs FOR UPDATE USING (true);
+-- Scrape Jobs: owners can view their own via join
+CREATE POLICY "Owners can view scrape jobs" ON scrape_jobs FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM review_sessions rs JOIN businesses b ON b.id = rs.business_id
+    WHERE rs.id = scrape_jobs.session_id AND b.owner_id = auth.uid()
+  ));
 
--- Plans: everyone can read
-CREATE POLICY "Anyone can view plans" ON plans FOR SELECT USING (true);
+-- Plans: public read only (no write policies = service_role only for mutations)
+CREATE POLICY "Anyone can view active plans" ON plans FOR SELECT USING (is_active = true);
 
--- Subscriptions: business owners can view their own
-CREATE POLICY "Owners can view subscriptions" ON subscriptions FOR SELECT USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
+-- Subscriptions: owners can view only (no write policies = service_role only for mutations)
+CREATE POLICY "Owners can view subscriptions" ON subscriptions FOR SELECT
+  USING (business_id IN (SELECT id FROM businesses WHERE owner_id = auth.uid()));
 
--- Super Admins: only service role manages this
-CREATE POLICY "Service role only" ON super_admins FOR ALL USING (true);
-
--- Admin Logs: only service role manages this
-CREATE POLICY "Service role only" ON admin_logs FOR ALL USING (true);
+-- Super Admins: NO policies (RLS enabled = only service_role can access)
+-- Admin Logs: NO policies (RLS enabled = only service_role can access)
 
 -- 12. Complaints (customer concerns)
 CREATE TABLE IF NOT EXISTS complaints (
