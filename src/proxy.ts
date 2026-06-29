@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function proxy(request: NextRequest) {
@@ -58,6 +59,26 @@ export async function proxy(request: NextRequest) {
     url.pathname = "/login";
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Block admin users from accessing the business dashboard
+  if (user.email && pathname.startsWith("/dashboard")) {
+    const serviceClient = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    const { data: isAdmin } = await serviceClient
+      .from("super_admins")
+      .select("id")
+      .eq("email", user.email)
+      .single();
+
+    if (isAdmin) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("error", "wrong_portal");
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

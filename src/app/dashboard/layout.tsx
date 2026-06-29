@@ -81,7 +81,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [user, authLoading, router]);
 
-  // removed super-admin redirect — admin uses separate app
 
   if (authLoading || !user || appLoading) {
     return (

@@ -27,7 +27,10 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const urlError = searchParams.get("error");
+  const [error, setError] = useState<string | null>(
+    urlError === "wrong_portal" ? "Please use the correct login portal. This portal is for business users only." : null
+  );
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -57,10 +60,14 @@ function LoginContent() {
         setLoading(false);
       } else {
         try {
-          const adminRes = await fetch("/api/super-admin?action=check-admin");
-          const adminData = await adminRes.json();
-          if (adminData.isAdmin) {
-            router.replace("/super-admin");
+          const res = await fetch("/api/auth/check-business");
+          const data = await res.json();
+          if (!data.isBusinessUser) {
+            const { createClient } = await import("@/lib/supabase/client");
+            const supabase = createClient();
+            await supabase.auth.signOut();
+            setError("Please use the correct login portal. This portal is for business users only.");
+            setLoading(false);
             return;
           }
         } catch {}
