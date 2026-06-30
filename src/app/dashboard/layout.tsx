@@ -2,8 +2,7 @@
 
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { LaunchCampaignModal } from "@/components/dashboard/LaunchCampaignModal";
-import { RegisterClientModal } from "@/components/dashboard/RegisterClientModal";
-import { Star, ShieldAlert, LogOut, Ban, CircleHelp } from "lucide-react";
+import { Star, ShieldAlert, LogOut, Ban, CircleHelp, Building2, ArrowRight } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { useAppState } from "@/lib/app-context";
@@ -19,6 +18,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/qr": "QR Flyer Manager",
   "/dashboard/settings": "Profile Settings",
   "/dashboard/help": "Help & Support",
+  "/dashboard/register-business": "Register Business",
 };
 
 const pageDescriptions: Record<string, string> = {
@@ -30,6 +30,7 @@ const pageDescriptions: Record<string, string> = {
   "/dashboard/qr": "Generate and manage branded QR flyers",
   "/dashboard/settings": "Configure your business profile",
   "/dashboard/help": "Raise issues related to the platform",
+  "/dashboard/register-business": "Set up your business profile to get started",
 };
 
 interface CampaignModalContextType {
@@ -90,35 +91,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (needsOnboarding) {
-    return (
-      <div className="min-h-screen bg-[#F8FAFB] relative overflow-hidden">
-        <div className="relative z-10 flex items-center justify-center min-h-screen p-4">
-          <div className="text-center max-w-md">
-            <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mx-auto mb-5 mix-blend-multiply" />
-            <h1 className="text-[22px] font-bold text-[#111] mb-2">Welcome to RevuGo</h1>
-            <p className="text-[13px] text-[#6B7280] mb-6 leading-relaxed">
-              Set up your business profile to get started with campaigns, reviews, and rewards.
-            </p>
-          </div>
-        </div>
-        <RegisterClientModal
-          open={true}
-          onClose={() => {}}
-          onRegister={async (data) => {
-            await registerBusiness(data);
-            toast.success(`Business "${data.businessName}" created successfully!`, {
-              style: {
-                backgroundColor: "#FFFFFF",
-                border: "1px solid #E5E7EB",
-                color: "#111",
-              },
-            });
-          }}
-        />
-      </div>
-    );
-  }
+  const restrictedPaths = [
+    "/dashboard/campaigns",
+    "/dashboard/reviews",
+    "/dashboard/coupons",
+    "/dashboard/qr",
+    "/dashboard/complaints",
+    "/dashboard/analytics",
+  ];
+  const isRestrictedPage = needsOnboarding && restrictedPaths.includes(pathname);
 
   const isSuspended = business && !business.is_active;
 
@@ -238,8 +219,51 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
 
+          {/* Onboarding banner */}
+          {needsOnboarding && pathname !== "/dashboard/register-business" && (
+            <div className="mx-5 sm:mx-8 mt-5 p-4 rounded-xl bg-gradient-to-r from-[#7C3AED]/5 to-[#6D28D9]/5 border border-[#7C3AED]/15">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/10 flex items-center justify-center flex-shrink-0">
+                  <Building2 className="w-5 h-5 text-[#7C3AED]" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-[14px] font-semibold text-[#111] mb-1">Complete your business registration</h3>
+                  <p className="text-[12px] text-[#6B7280] leading-relaxed">
+                    Complete your business registration to start creating campaigns, QR codes, coupons, and collecting customer reviews.
+                  </p>
+                  <button
+                    onClick={() => router.push("/dashboard/register-business")}
+                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-[12px] font-semibold hover:bg-[#6D28D9] transition-colors"
+                  >
+                    Register Business <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Page content */}
-          <div className="p-5 sm:p-8">{children}</div>
+          <div className="p-5 sm:p-8">
+            {isRestrictedPage ? (
+              <div className="flex flex-col items-center justify-center py-20">
+                <div className="w-16 h-16 rounded-2xl bg-[#7C3AED]/10 flex items-center justify-center mb-5">
+                  <Building2 className="w-8 h-8 text-[#7C3AED]" />
+                </div>
+                <h2 className="text-[18px] font-bold text-[#111] mb-2">Business Required</h2>
+                <p className="text-[13px] text-[#6B7280] text-center max-w-sm mb-6">
+                  Please register your business first to access this feature.
+                </p>
+                <button
+                  onClick={() => router.push("/dashboard/register-business")}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#7C3AED] text-white text-[13px] font-bold hover:bg-[#6D28D9] transition-colors"
+                >
+                  <Building2 className="w-4 h-4" /> Register Business
+                </button>
+              </div>
+            ) : (
+              children
+            )}
+          </div>
         </main>
 
         {/* Campaign modal */}

@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   TicketCheck,
   LogOut,
+  Building2,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAppState } from "@/lib/app-context";
@@ -19,12 +20,13 @@ import { useAuth } from "@/lib/auth-context";
 
 export function DashboardNav() {
   const pathname = usePathname();
-  const { business } = useAppState();
+  const { business, needsOnboarding } = useAppState();
   const { profile, signOut } = useAuth();
   const router = useRouter();
 
-  const navItems = [
-    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  const allNavItems = [
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard, always: true },
+    { href: "/dashboard/register-business", label: "Register Business", icon: Building2, onlyOnboarding: true },
     { href: "/dashboard/campaigns", label: "Campaigns", icon: Megaphone },
     { href: "/dashboard/reviews", label: "Review Inbox", icon: MessageSquare },
     { href: "/dashboard/complaints", label: "Customer Concerns", icon: AlertTriangle },
@@ -32,6 +34,12 @@ export function DashboardNav() {
     { href: "/dashboard/qr", label: "QR Flyer Manager", icon: QrCode },
     { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   ];
+
+  const navItems = allNavItems.filter((item) => {
+    if (item.onlyOnboarding) return needsOnboarding;
+    if (item.always) return true;
+    return !needsOnboarding;
+  });
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -95,12 +103,15 @@ export function DashboardNav() {
         <nav className="flex-1 px-3 space-y-0.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const isRegister = (item as { onlyOnboarding?: boolean }).onlyOnboarding;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200 group relative ${
-                  isActive
+                  isRegister && !isActive
+                    ? "bg-[#7C3AED]/5 text-[#7C3AED] border border-[#7C3AED]/20 hover:bg-[#7C3AED]/10"
+                    : isActive
                     ? "bg-[#7C3AED]/8 text-[#7C3AED]"
                     : "text-[#6B7280] hover:text-[#111] hover:bg-[#F3F4F6]"
                 }`}
@@ -108,7 +119,7 @@ export function DashboardNav() {
                 {isActive && (
                   <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-5 rounded-full bg-[#7C3AED]" />
                 )}
-                <item.icon className={`w-[17px] h-[17px] ${isActive ? "text-[#7C3AED]" : "text-[#9CA3AF] group-hover:text-[#6B7280]"}`} />
+                <item.icon className={`w-[17px] h-[17px] ${isActive || isRegister ? "text-[#7C3AED]" : "text-[#9CA3AF] group-hover:text-[#6B7280]"}`} />
                 {item.label}
               </Link>
             );
@@ -215,18 +226,21 @@ export function DashboardNav() {
             <nav className="space-y-0.5">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
+                const isRegister = (item as { onlyOnboarding?: boolean }).onlyOnboarding;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all ${
-                      isActive
+                      isRegister && !isActive
+                        ? "bg-[#7C3AED]/5 text-[#7C3AED] border border-[#7C3AED]/20"
+                        : isActive
                         ? "bg-[#7C3AED]/8 text-[#7C3AED]"
                         : "text-[#6B7280] hover:text-[#111] hover:bg-[#F3F4F6]"
                     }`}
                   >
-                    <item.icon className={`w-[17px] h-[17px] ${isActive ? "text-[#7C3AED]" : "text-[#9CA3AF]"}`} />
+                    <item.icon className={`w-[17px] h-[17px] ${isActive || isRegister ? "text-[#7C3AED]" : "text-[#9CA3AF]"}`} />
                     {item.label}
                   </Link>
                 );
