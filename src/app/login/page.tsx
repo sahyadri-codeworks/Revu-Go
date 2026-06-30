@@ -29,7 +29,7 @@ function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
   const urlError = searchParams.get("error");
   const [error, setError] = useState<string | null>(
-    urlError === "wrong_portal" ? "Please use the correct login portal. This portal is for business users only." : null
+    urlError === "wrong_portal" ? "Invalid username or password. This portal is for business users only." : null
   );
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,7 +66,7 @@ function LoginContent() {
             const { createClient } = await import("@/lib/supabase/client");
             const supabase = createClient();
             await supabase.auth.signOut();
-            setError("Please use the correct login portal. This portal is for business users only.");
+            setError("Invalid username or password. This portal is for business users only.");
             setLoading(false);
             return;
           }
