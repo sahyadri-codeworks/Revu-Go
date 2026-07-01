@@ -20,6 +20,8 @@ interface RegisterClientModalProps {
     website: string;
     phone: string;
     email: string;
+    firstName: string;
+    lastName: string;
   }) => void | Promise<void>;
 }
 
@@ -38,6 +40,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
   const [website, setWebsite] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
 
   const selectedSegment = INDUSTRY_SEGMENTS.find((s) => s.value === industrySegment);
   const subOptions = industrySegment ? (SUB_INDUSTRIES[industrySegment] || []) : [];
@@ -58,6 +62,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
     setWebsite("");
     setPhone("");
     setEmail("");
+    setFirstName("");
+    setLastName("");
   };
 
   const handleRegister = async () => {
@@ -73,6 +79,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
       website,
       phone,
       email,
+      firstName,
+      lastName,
     });
     resetForm();
   };
@@ -173,6 +181,30 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
                       transition={{ duration: 0.15 }}
                       className="space-y-4"
                     >
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>First Name</label>
+                          <input
+                            type="text"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            placeholder="e.g. Rahul"
+                            className={inputClass}
+                            autoFocus
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Last Name</label>
+                          <input
+                            type="text"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            placeholder="e.g. Sharma"
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+
                       <div>
                         <label className={labelClass}>Business Name</label>
                         <input
@@ -181,7 +213,6 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
                           onChange={(e) => setBusinessName(e.target.value)}
                           placeholder="e.g. Sahyadri Coffee Works"
                           className={inputClass}
-                          autoFocus
                         />
                       </div>
 

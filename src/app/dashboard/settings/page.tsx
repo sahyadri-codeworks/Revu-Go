@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const { signOut } = useAuth();
   const router = useRouter();
 
+  const [firstName, setFirstName] = useState(business?.owner_first_name || "");
+  const [lastName, setLastName] = useState(business?.owner_last_name || "");
   const [businessName, setBusinessName] = useState(business?.name || "");
   const [industry, setIndustry] = useState(business?.industry_segment || "");
   const [subIndustry, setSubIndustry] = useState(business?.sub_industry || "");
@@ -55,6 +57,8 @@ export default function SettingsPage() {
       business_highlights: businessHighlights,
       phone,
       email,
+      owner_first_name: firstName,
+      owner_last_name: lastName,
     });
     toast.success("Profile changes saved", { style: toastStyle });
   };
@@ -93,6 +97,29 @@ export default function SettingsPage() {
 
       {/* Form */}
       <div className="space-y-5">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>First Name</label>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="e.g. Rahul"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Last Name</label>
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="e.g. Sharma"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
         <div>
           <label className={labelClass}>Business Name</label>
           <input

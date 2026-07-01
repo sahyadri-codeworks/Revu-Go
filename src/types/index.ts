@@ -24,6 +24,8 @@ export interface Business {
   sub_industry?: string;
   phone?: string;
   email?: string;
+  owner_first_name?: string;
+  owner_last_name?: string;
 }
 
 export type BusinessCategory =

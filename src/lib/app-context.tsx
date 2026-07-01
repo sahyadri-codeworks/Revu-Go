@@ -35,6 +35,8 @@ interface RegisterData {
   website: string;
   phone: string;
   email: string;
+  firstName: string;
+  lastName: string;
 }
 
 interface AppContextType extends AppState {
@@ -114,6 +116,8 @@ function dbRowToBusiness(row: Record<string, unknown>): Business {
     sub_industry: (row.sub_industry as string) || "",
     phone: (row.phone as string) || "",
     email: (row.email as string) || "",
+    owner_first_name: (row.owner_first_name as string) || "",
+    owner_last_name: (row.owner_last_name as string) || "",
   };
 }
 
@@ -522,6 +526,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           website: data.website || null,
           phone: data.phone || null,
           email: data.email || null,
+          owner_first_name: data.firstName || null,
+          owner_last_name: data.lastName || null,
         })
         .select("*")
         .single();
@@ -573,6 +579,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dbFields.business_highlights = data.business_highlights;
       if (data.phone !== undefined) dbFields.phone = data.phone;
       if (data.email !== undefined) dbFields.email = data.email;
+      if (data.owner_first_name !== undefined)
+        dbFields.owner_first_name = data.owner_first_name;
+      if (data.owner_last_name !== undefined)
+        dbFields.owner_last_name = data.owner_last_name;
 
       if (Object.keys(dbFields).length > 0) {
         await supabase.from("businesses").update(dbFields).eq("id", id);
