@@ -18,6 +18,8 @@ interface RegisterClientModalProps {
     logoUrl: string;
     instagram: string;
     website: string;
+    phone: string;
+    email: string;
   }) => void | Promise<void>;
 }
 
@@ -34,6 +36,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
   const [logoUrl, setLogoUrl] = useState("");
   const [instagram, setInstagram] = useState("");
   const [website, setWebsite] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
 
   const selectedSegment = INDUSTRY_SEGMENTS.find((s) => s.value === industrySegment);
   const subOptions = industrySegment ? (SUB_INDUSTRIES[industrySegment] || []) : [];
@@ -52,6 +56,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
     setLogoUrl("");
     setInstagram("");
     setWebsite("");
+    setPhone("");
+    setEmail("");
   };
 
   const handleRegister = async () => {
@@ -65,6 +71,8 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
       logoUrl,
       instagram,
       website,
+      phone,
+      email,
     });
     resetForm();
   };
@@ -260,6 +268,29 @@ export function RegisterClientModal({ open, onClose, onRegister }: RegisterClien
                           placeholder="https://maps.google.com/?cid=384729104"
                           className={inputClass}
                         />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className={labelClass}>Phone Number</label>
+                          <input
+                            type="tel"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder="e.g. +91 98765 43210"
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Business Email</label>
+                          <input
+                            type="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="e.g. hello@mybusiness.com"
+                            className={inputClass}
+                          />
+                        </div>
                       </div>
                     </motion.div>
                   )}

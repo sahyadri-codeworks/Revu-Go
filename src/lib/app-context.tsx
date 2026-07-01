@@ -33,6 +33,8 @@ interface RegisterData {
   logoUrl: string;
   instagram: string;
   website: string;
+  phone: string;
+  email: string;
 }
 
 interface AppContextType extends AppState {
@@ -110,6 +112,8 @@ function dbRowToBusiness(row: Record<string, unknown>): Business {
     business_highlights: (row.business_highlights as string) || "",
     industry_segment: (row.industry_segment as string) || "",
     sub_industry: (row.sub_industry as string) || "",
+    phone: (row.phone as string) || "",
+    email: (row.email as string) || "",
   };
 }
 
@@ -516,6 +520,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           logo_url: data.logoUrl || "",
           instagram_url: data.instagram || null,
           website: data.website || null,
+          phone: data.phone || null,
+          email: data.email || null,
         })
         .select("*")
         .single();
@@ -565,6 +571,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dbFields.staff_info = data.staff_info;
       if (data.business_highlights !== undefined)
         dbFields.business_highlights = data.business_highlights;
+      if (data.phone !== undefined) dbFields.phone = data.phone;
+      if (data.email !== undefined) dbFields.email = data.email;
 
       if (Object.keys(dbFields).length > 0) {
         await supabase.from("businesses").update(dbFields).eq("id", id);

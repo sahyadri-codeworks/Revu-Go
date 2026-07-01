@@ -22,6 +22,8 @@ export interface Business {
   business_highlights?: string;
   industry_segment?: string;
   sub_industry?: string;
+  phone?: string;
+  email?: string;
 }
 
 export type BusinessCategory =

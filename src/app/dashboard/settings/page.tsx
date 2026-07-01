@@ -33,6 +33,8 @@ export default function SettingsPage() {
   const [servicesOffered, setServicesOffered] = useState(business?.services_offered || "");
   const [staffInfo, setStaffInfo] = useState(business?.staff_info || "");
   const [businessHighlights, setBusinessHighlights] = useState(business?.business_highlights || "");
+  const [phone, setPhone] = useState(business?.phone || "");
+  const [email, setEmail] = useState(business?.email || "");
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [purging, setPurging] = useState(false);
 
@@ -51,6 +53,8 @@ export default function SettingsPage() {
       services_offered: servicesOffered,
       staff_info: staffInfo,
       business_highlights: businessHighlights,
+      phone,
+      email,
     });
     toast.success("Profile changes saved", { style: toastStyle });
   };
@@ -209,6 +213,29 @@ export default function SettingsPage() {
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
               placeholder="e.g. www.caferoyale.in"
+              className={inputClass}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Phone Number</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="e.g. +91 98765 43210"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>Business Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="e.g. hello@mybusiness.com"
               className={inputClass}
             />
           </div>
