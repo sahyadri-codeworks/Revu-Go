@@ -63,8 +63,12 @@ export function NotificationBell() {
         if (data) setNotifications(data as Notification[]);
       });
 
+    const channelName = `notif-biz-${business.id}`;
+    const existing = supabase.getChannels().find((c) => c.topic === `realtime:${channelName}`);
+    if (existing) supabase.removeChannel(existing);
+
     const channel = supabase
-      .channel(`notif-biz-${business.id}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
