@@ -3,6 +3,7 @@
 import { DashboardNav } from "@/components/dashboard/DashboardNav";
 import { LaunchCampaignModal } from "@/components/dashboard/LaunchCampaignModal";
 import { Star, ShieldAlert, LogOut, Ban, CircleHelp, Building2, ArrowRight } from "lucide-react";
+import { NotificationBell } from "@/components/dashboard/NotificationBell";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { useAppState } from "@/lib/app-context";
@@ -16,6 +17,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/coupons": "Verify Coupons",
   "/dashboard/analytics": "Analytics",
   "/dashboard/qr": "QR Flyer Manager",
+  "/dashboard/complaints": "Customer Concerns",
   "/dashboard/settings": "Profile Settings",
   "/dashboard/help": "Help & Support",
   "/dashboard/register-business": "Register Business",
@@ -28,6 +30,7 @@ const pageDescriptions: Record<string, string> = {
   "/dashboard/coupons": "Verify and redeem customer reward coupons",
   "/dashboard/analytics": "Deep insights into your review performance",
   "/dashboard/qr": "Generate and manage branded QR flyers",
+  "/dashboard/complaints": "Track and resolve customer complaints",
   "/dashboard/settings": "Configure your business profile",
   "/dashboard/help": "Raise issues related to the platform",
   "/dashboard/register-business": "Set up your business profile to get started",
@@ -207,6 +210,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 >
                   <CircleHelp className="w-[18px] h-[18px]" />
                 </button>
+                {/* Notifications */}
+                {!needsOnboarding && <NotificationBell />}
                 {/* Avg rating */}
                 <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#7C3AED]/15 bg-[#7C3AED]/5">
                   <Star className="w-4 h-4 text-[#7C3AED] fill-[#7C3AED]" />

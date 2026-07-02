@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAppState } from "@/lib/app-context";
 import type { Business } from "@/types";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ChevronDown, AlertTriangle, Loader2 } from "lucide-react";
+import { ChevronDown, AlertTriangle, Loader2, Bell, Volume2, VolumeX } from "lucide-react";
 import { INDUSTRY_SEGMENTS, SUB_INDUSTRIES } from "@/lib/industries";
+import { createClient } from "@/lib/supabase/client";
 
 const toastStyle = {
   backgroundColor: "#FFFFFF",
@@ -39,6 +40,44 @@ export default function SettingsPage() {
   const [email, setEmail] = useState(business?.email || "");
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [notifSound, setNotifSound] = useState(true);
+  const [notifComplaints, setNotifComplaints] = useState(true);
+  const [notifTickets, setNotifTickets] = useState(true);
+  const [notifLoaded, setNotifLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!business?.owner_id) return;
+    const supabase = createClient();
+    supabase
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", business.owner_id)
+      .single()
+      .then(({ data }) => {
+        if (data) {
+          setNotifSound(data.sound_enabled);
+          setNotifComplaints(data.complaints_enabled);
+          setNotifTickets(data.tickets_enabled);
+        }
+        setNotifLoaded(true);
+      });
+  }, [business?.owner_id]);
+
+  const saveNotifPrefs = async () => {
+    if (!business?.owner_id) return;
+    const supabase = createClient();
+    const prefs = {
+      user_id: business.owner_id,
+      sound_enabled: notifSound,
+      complaints_enabled: notifComplaints,
+      tickets_enabled: notifTickets,
+      updated_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from("notification_preferences")
+      .upsert(prefs, { onConflict: "user_id" });
+    if (!error) toast.success("Notification preferences saved", { style: toastStyle });
+  };
 
   const handleCommit = () => {
     updateBusiness({
@@ -318,6 +357,96 @@ export default function SettingsPage() {
           className="w-full py-4 rounded-xl bg-[#7C3AED] text-white text-[11px] uppercase tracking-[0.15em] font-bold hover:bg-[#6D28D9] transition-all duration-300"
         >
           Save Changes
+        </button>
+      </div>
+
+      {/* Notification Preferences */}
+      <div className="mt-8 glass-card rounded-2xl p-6 border border-[#E5E7EB]">
+        <h3 className="text-[12px] text-[#7C3AED] uppercase tracking-[0.1em] font-semibold flex items-center gap-2 mb-4">
+          <Bell className="w-4 h-4" />
+          Notification Preferences
+        </h3>
+
+        <div className="space-y-4">
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center gap-3">
+              {notifSound ? (
+                <Volume2 className="w-4 h-4 text-[#7C3AED]" />
+              ) : (
+                <VolumeX className="w-4 h-4 text-[#9CA3AF]" />
+              )}
+              <div>
+                <p className="text-[13px] text-[#111] font-medium">Notification Sound</p>
+                <p className="text-[11px] text-[#9CA3AF]">Play a sound when new notifications arrive</p>
+              </div>
+            </div>
+            <div
+              onClick={() => setNotifSound(!notifSound)}
+              className={`relative w-10 h-5.5 rounded-full transition-colors ${
+                notifSound ? "bg-[#7C3AED]" : "bg-[#D1D5DB]"
+              }`}
+              style={{ width: 40, height: 22 }}
+            >
+              <div
+                className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${
+                  notifSound ? "translate-x-[20px]" : "translate-x-[2px]"
+                }`}
+              />
+            </div>
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-[#F59E0B]" />
+              <div>
+                <p className="text-[13px] text-[#111] font-medium">Customer Concerns</p>
+                <p className="text-[11px] text-[#9CA3AF]">Get notified when a customer submits a complaint</p>
+              </div>
+            </div>
+            <div
+              onClick={() => setNotifComplaints(!notifComplaints)}
+              className={`relative rounded-full transition-colors cursor-pointer ${
+                notifComplaints ? "bg-[#7C3AED]" : "bg-[#D1D5DB]"
+              }`}
+              style={{ width: 40, height: 22 }}
+            >
+              <div
+                className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${
+                  notifComplaints ? "translate-x-[20px]" : "translate-x-[2px]"
+                }`}
+              />
+            </div>
+          </label>
+
+          <label className="flex items-center justify-between cursor-pointer group">
+            <div className="flex items-center gap-3">
+              <Bell className="w-4 h-4 text-[#3B82F6]" />
+              <div>
+                <p className="text-[13px] text-[#111] font-medium">Ticket Updates</p>
+                <p className="text-[11px] text-[#9CA3AF]">Get notified on support ticket replies and status changes</p>
+              </div>
+            </div>
+            <div
+              onClick={() => setNotifTickets(!notifTickets)}
+              className={`relative rounded-full transition-colors cursor-pointer ${
+                notifTickets ? "bg-[#7C3AED]" : "bg-[#D1D5DB]"
+              }`}
+              style={{ width: 40, height: 22 }}
+            >
+              <div
+                className={`absolute top-0.5 w-[18px] h-[18px] rounded-full bg-white shadow transition-transform ${
+                  notifTickets ? "translate-x-[20px]" : "translate-x-[2px]"
+                }`}
+              />
+            </div>
+          </label>
+        </div>
+
+        <button
+          onClick={saveNotifPrefs}
+          className="mt-5 w-full py-3 rounded-xl border border-[#7C3AED]/20 text-[#7C3AED] text-[11px] uppercase tracking-[0.15em] font-bold hover:bg-[#7C3AED]/5 transition-all duration-300"
+        >
+          Save Notification Preferences
         </button>
       </div>
 

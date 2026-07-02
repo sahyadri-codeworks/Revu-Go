@@ -108,6 +108,32 @@ export async function POST(req: NextRequest) {
       }).select("id").single();
 
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+      await admin.from("notifications").insert({
+        recipient_id: business_id,
+        recipient_type: "business",
+        type: "complaint",
+        title: `New ${star_rating}-star concern`,
+        message: complaint_text.slice(0, 200),
+        reference_id: data.id,
+        reference_type: "complaint",
+      });
+
+      const { data: admins } = await admin.from("super_admins").select("user_id");
+      if (admins && admins.length > 0) {
+        await admin.from("notifications").insert(
+          admins.map((a: { user_id: string }) => ({
+            recipient_id: a.user_id,
+            recipient_type: "admin",
+            type: "complaint",
+            title: `Customer complaint (${star_rating}-star)`,
+            message: complaint_text.slice(0, 200),
+            reference_id: data.id,
+            reference_type: "complaint",
+          }))
+        );
+      }
+
       return NextResponse.json({ id: data.id, ok: true });
     }
 

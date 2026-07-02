@@ -123,13 +123,27 @@ export async function POST(req: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-    // Add the initial message
     await admin.from("ticket_messages").insert({
       ticket_id: ticket.id,
       sender_type: "business",
       sender_email: user.email,
       message: body.message,
     });
+
+    const { data: admins } = await admin.from("super_admins").select("user_id");
+    if (admins && admins.length > 0) {
+      await admin.from("notifications").insert(
+        admins.map((a: { user_id: string }) => ({
+          recipient_id: a.user_id,
+          recipient_type: "admin",
+          type: "ticket",
+          title: `New support ticket: ${body.subject}`,
+          message: (body.message as string).slice(0, 200),
+          reference_id: ticket.id,
+          reference_type: "support_ticket",
+        }))
+      );
+    }
 
     return NextResponse.json({ ticket });
   }
@@ -187,10 +201,28 @@ export async function POST(req: NextRequest) {
       .update({ updated_at: new Date().toISOString() })
       .eq("id", body.ticketId);
 
+    if (!body.isInternalNote) {
+      const { data: ticket } = await admin
+        .from("support_tickets")
+        .select("business_id, subject")
+        .eq("id", body.ticketId)
+        .single();
+      if (ticket) {
+        await admin.from("notifications").insert({
+          recipient_id: ticket.business_id,
+          recipient_type: "business",
+          type: "ticket_reply",
+          title: `Reply on: ${ticket.subject}`,
+          message: (body.message as string).slice(0, 200),
+          reference_id: body.ticketId,
+          reference_type: "support_ticket",
+        });
+      }
+    }
+
     return NextResponse.json({ success: true });
   }
 
-  // Super admin updates ticket status/priority
   if (action === "update-ticket") {
     const isAdmin = user.email ? await verifySuperAdmin(user.email) : false;
     if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -203,6 +235,25 @@ export async function POST(req: NextRequest) {
       .from("support_tickets")
       .update(updates)
       .eq("id", body.ticketId);
+
+    if (body.status) {
+      const { data: ticket } = await admin
+        .from("support_tickets")
+        .select("business_id, subject")
+        .eq("id", body.ticketId)
+        .single();
+      if (ticket) {
+        await admin.from("notifications").insert({
+          recipient_id: ticket.business_id,
+          recipient_type: "business",
+          type: "status_update",
+          title: `Ticket ${body.status}: ${ticket.subject}`,
+          message: `Your support ticket has been marked as ${body.status}.`,
+          reference_id: body.ticketId,
+          reference_type: "support_ticket",
+        });
+      }
+    }
 
     return NextResponse.json({ success: true });
   }
