@@ -78,11 +78,19 @@ export async function POST(request: Request) {
     mcqAnswers, mcqNotes, starRating, businessId,
   } = body;
 
+  if (!businessId || !businessName || !mcqAnswers) {
+    return Response.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data: biz } = await admin.from("businesses").select("id").eq("id", businessId).single();
+  if (!biz) return Response.json({ error: "Invalid business" }, { status: 400 });
+
   if (!GROQ_API_KEY) {
     return Response.json({ reviews: generateMinimalFallback(businessName, mcqAnswers, mcqNotes, starRating), source: "fallback" });
   }
 
-  const existingReviews = businessId ? await fetchExistingReviews(businessId) : [];
+  const existingReviews = await fetchExistingReviews(businessId);
 
   const uniqueSeed = generateUniqueSeed();
   const shuffledStyles = [...WRITING_STYLES].sort(() => Math.random() - 0.5);

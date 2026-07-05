@@ -1,4 +1,5 @@
 import { getMCQQuestions } from "@/lib/mcq-templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 

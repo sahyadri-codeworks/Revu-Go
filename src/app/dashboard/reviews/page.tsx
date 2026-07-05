@@ -10,6 +10,7 @@ export default function ReviewsPage() {
   const { sessions } = useAppState();
 
   const publicReviews = [...sessions]
+    .filter((s) => s.selected_review_text)
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return (

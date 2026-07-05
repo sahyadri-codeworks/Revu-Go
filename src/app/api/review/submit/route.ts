@@ -13,6 +13,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
+      const { data: biz } = await admin.from("businesses").select("id").eq("id", business_id).single();
+      if (!biz) return NextResponse.json({ error: "Invalid business" }, { status: 400 });
+
+      if (campaign_id) {
+        const { data: camp } = await admin.from("campaigns").select("id, is_active").eq("id", campaign_id).eq("business_id", business_id).single();
+        if (!camp) return NextResponse.json({ error: "Invalid campaign" }, { status: 400 });
+      }
+
       const { data, error } = await admin
         .from("review_sessions")
         .insert({
@@ -35,6 +43,19 @@ export async function POST(req: NextRequest) {
       const { session_id, business_id, campaign_id, coupon_code, reward_type, reward_value, expires_at } = body;
       if (!business_id || !campaign_id || !coupon_code) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      }
+
+      const { data: biz } = await admin.from("businesses").select("id").eq("id", business_id).single();
+      if (!biz) return NextResponse.json({ error: "Invalid business" }, { status: 400 });
+
+      const { data: campaignData } = await admin
+        .from("campaigns")
+        .select("max_redemptions, redeemed_count")
+        .eq("id", campaign_id)
+        .single();
+
+      if (campaignData?.max_redemptions && (campaignData.redeemed_count || 0) >= campaignData.max_redemptions) {
+        return NextResponse.json({ error: "Campaign limit reached" }, { status: 409 });
       }
 
       const { error } = await admin.from("coupons").insert({
@@ -66,13 +87,16 @@ export async function POST(req: NextRequest) {
 
     if (action === "submit-feedback") {
       const { business_id, campaign_id, star_rating, feedback_text } = body;
-      if (!business_id || !campaign_id || !star_rating) {
+      if (!business_id || !star_rating) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
+      const { data: biz } = await admin.from("businesses").select("id").eq("id", business_id).single();
+      if (!biz) return NextResponse.json({ error: "Invalid business" }, { status: 400 });
+
       const { error } = await admin.from("private_feedback").insert({
         business_id,
-        campaign_id,
+        campaign_id: campaign_id || null,
         star_rating,
         feedback_text: feedback_text || "",
         is_read: false,
@@ -91,6 +115,9 @@ export async function POST(req: NextRequest) {
       if (!business_id || !complaint_text) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
+
+      const { data: biz } = await admin.from("businesses").select("id").eq("id", business_id).single();
+      if (!biz) return NextResponse.json({ error: "Invalid business" }, { status: 400 });
 
       const { data, error } = await admin.from("complaints").insert({
         business_id,

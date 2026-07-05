@@ -43,13 +43,13 @@ export default function ComplaintsPage() {
 
   const updateStatus = async (id: string, newStatus: Complaint["status"]) => {
     setUpdatingId(id);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("complaints")
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq("id", id);
+    const res = await fetch("/api/complaints", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complaintId: id, status: newStatus }),
+    });
 
-    if (!error) {
+    if (res.ok) {
       setComplaints((prev) =>
         prev.map((c) => (c.id === id ? { ...c, status: newStatus, updated_at: new Date().toISOString() } : c))
       );
@@ -58,11 +58,11 @@ export default function ComplaintsPage() {
   };
 
   const saveNotes = async (id: string, notes: string) => {
-    const supabase = createClient();
-    await supabase
-      .from("complaints")
-      .update({ business_notes: notes, updated_at: new Date().toISOString() })
-      .eq("id", id);
+    await fetch("/api/complaints", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ complaintId: id, business_notes: notes }),
+    });
 
     setComplaints((prev) =>
       prev.map((c) => (c.id === id ? { ...c, business_notes: notes } : c))

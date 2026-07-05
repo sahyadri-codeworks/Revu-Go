@@ -320,13 +320,12 @@ export default function QRPage() {
   const { business, campaigns } = useAppState();
   const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0]?.id || "");
   const [copied, setCopied] = useState(false);
-
-  if (!business) return null;
   const [downloading, setDownloading] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
   const qrCanvasRef = useRef<HTMLDivElement>(null);
-
   const [origin, setOrigin] = useState("");
+
+  if (!business) return null;
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];

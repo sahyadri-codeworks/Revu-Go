@@ -8,11 +8,12 @@ interface PrivateFeedbackFormProps {
   starRating: number;
   businessName: string;
   onSubmit: (feedback: string) => void;
+  onSkip?: () => void;
 }
 
-export function PrivateFeedbackForm({ starRating, businessName, onSubmit }: PrivateFeedbackFormProps) {
+export function PrivateFeedbackForm({ starRating, businessName, onSubmit, onSkip }: PrivateFeedbackFormProps) {
   const [feedback, setFeedback] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState<"sent" | "skipped" | false>(false);
 
   if (submitted) {
     return (
@@ -48,8 +49,11 @@ export function PrivateFeedbackForm({ starRating, businessName, onSubmit }: Priv
           transition={{ delay: 0.3 }}
           className="text-[13px] text-[#8B9A7E] text-center max-w-sm leading-relaxed mb-6"
         >
-          Your feedback has been sent privately to <span className="text-[#166534] font-semibold">{businessName}</span>.
-          They&apos;ll use it to improve their service.
+          {submitted === "sent" ? (
+            <>Your feedback has been sent privately to <span className="text-[#166534] font-semibold">{businessName}</span>. They&apos;ll use it to improve their service.</>
+          ) : (
+            <>We appreciate you taking the time. Your experience matters to <span className="text-[#166534] font-semibold">{businessName}</span>.</>
+          )}
         </motion.p>
         <motion.div
           initial={{ scale: 0 }}
@@ -115,7 +119,7 @@ export function PrivateFeedbackForm({ starRating, businessName, onSubmit }: Priv
           whileTap={{ scale: 0.98 }}
           onClick={() => {
             onSubmit(feedback);
-            setSubmitted(true);
+            setSubmitted("sent");
           }}
           disabled={!feedback.trim()}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-[#166534] to-[#15803D] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#166534]/25"
@@ -124,7 +128,10 @@ export function PrivateFeedbackForm({ starRating, businessName, onSubmit }: Priv
           Send Private Feedback
         </motion.button>
         <button
-          onClick={() => setSubmitted(true)}
+          onClick={() => {
+            setSubmitted("skipped");
+            if (onSkip) setTimeout(onSkip, 1500);
+          }}
           className="w-full mt-3 py-3 text-[13px] text-[#8B9A7E] font-medium hover:text-[#374151] transition-colors"
         >
           Skip for now

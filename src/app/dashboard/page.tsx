@@ -284,7 +284,9 @@ export default function DashboardOverview() {
                 <div className="text-[#6B7280] text-sm text-center py-8">No sessions yet</div>
               ) : (
                 recentSessions.map((session) => {
-                  const sessionId = `${session.campaign_id === "camp-001" ? "CAF" : "CAD"}-${session.session_token.slice(-4).toUpperCase()}`;
+                  const camp = campaigns.find((c) => c.id === session.campaign_id);
+                  const prefix = camp?.coupon_prefix?.slice(0, 3) || "SES";
+                  const sessionId = `${prefix}-${session.session_token.slice(-4).toUpperCase()}`;
                   const time = format(new Date(session.created_at), "hh:mm a");
 
                   return (
@@ -301,7 +303,7 @@ export default function DashboardOverview() {
                             </span>
                           </div>
                           <p className="text-[12px] text-[#6B7280] truncate group-hover:text-[#374151] transition-colors leading-relaxed">
-                            {session.selected_review_text.slice(0, 55)}...
+                            {session.selected_review_text ? `${session.selected_review_text.slice(0, 55)}...` : `${session.star_rating}-star session`}
                           </p>
                         </div>
                       </div>

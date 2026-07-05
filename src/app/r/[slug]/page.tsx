@@ -38,7 +38,6 @@ export default function CustomerReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
-  const [hasCampaigns, setHasCampaigns] = useState(false);
   const [industrySegment, setIndustrySegment] = useState("");
   const [subIndustry, setSubIndustry] = useState("");
   const [businessProfile, setBusinessProfile] = useState({
@@ -86,9 +85,11 @@ export default function CustomerReviewPage() {
       const activeCamps = (camps || []).filter(
         (c) => new Date(c.expires_at) >= new Date()
       );
-      if (activeCamps.length > 0) {
-        setHasCampaigns(true);
-        const picked = activeCamps[Math.floor(Math.random() * activeCamps.length)];
+      const availableCamps = activeCamps.filter(
+        (c) => !c.max_redemptions || (c.redeemed_count || 0) < c.max_redemptions
+      );
+      if (availableCamps.length > 0) {
+        const picked = availableCamps[Math.floor(Math.random() * availableCamps.length)];
         setCampaign({
           id: picked.id, business_id: picked.business_id, title: picked.title,
           offer_text: picked.offer_text, coupon_prefix: picked.coupon_prefix,
@@ -303,13 +304,31 @@ function CustomerFlow({
     setTimeout(() => setStep("did-you-post"), 2000);
   };
 
+  const ensureSession = useCallback(async () => {
+    if (sessionId) return;
+    try {
+      const res = await fetch("/api/review/submit", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create-session",
+          business_id: business.id, campaign_id: campaign?.id || null,
+          star_rating: starRating, mcq_answers: mcqAnswers,
+          selected_review_text: "", session_token: sessionToken,
+        }),
+      });
+      const data = await res.json();
+      if (data.id) setSessionId(data.id);
+    } catch {}
+  }, [sessionId, business.id, campaign?.id, starRating, mcqAnswers, sessionToken]);
+
   const showReward = useCallback(async () => {
     if (campaign) {
+      await ensureSession();
       setStep("scratch");
     } else {
       setStep("final");
     }
-  }, [campaign]);
+  }, [campaign, ensureSession]);
 
   const handleScratchRevealed = useCallback(async () => {
     if (campaign && sessionId) {
@@ -355,16 +374,16 @@ function CustomerFlow({
           {step === "private-feedback" && (
             <PrivateFeedbackForm starRating={starRating} businessName={business.name}
               onSubmit={async (feedbackText) => {
-                if (campaign) {
-                  await fetch("/api/review/submit", {
-                    method: "POST", headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      action: "submit-feedback", business_id: business.id,
-                      campaign_id: campaign.id, star_rating: starRating, feedback_text: feedbackText,
-                    }),
-                  }).catch(() => {});
-                }
+                await fetch("/api/review/submit", {
+                  method: "POST", headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "submit-feedback", business_id: business.id,
+                    campaign_id: campaign?.id || null, star_rating: starRating, feedback_text: feedbackText,
+                  }),
+                }).catch(() => {});
+                setTimeout(() => showReward(), 1500);
               }}
+              onSkip={showReward}
             />
           )}
 
@@ -573,9 +592,9 @@ function CustomerFlow({
                   <ExternalLink className="w-5 h-5" /> Yes, take me to Google
                 </motion.button>
 
-                <motion.button whileTap={{ scale: 0.98 }} onClick={showReward}
-                  className="w-full py-4 rounded-2xl border-2 border-[#E5E7EB] text-[15px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors">
-                  {campaign ? "Maybe later, show my reward" : "Maybe later"}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("private-feedback")}
+                  className="w-full py-4 rounded-2xl border-2 border-[#E5E7EB] text-[15px] text-[#6B7280] font-semibold hover:border-[#D1D5DB] transition-colors flex items-center justify-center gap-2">
+                  <MessageSquare className="w-4 h-4" /> {campaign ? "Share private feedback instead" : "Share private feedback"}
                 </motion.button>
 
                 <p className="text-[11px] text-[#9CA3AF] text-center mt-2">

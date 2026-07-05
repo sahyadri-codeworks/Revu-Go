@@ -72,7 +72,7 @@ export default function HelpPage() {
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState("");
+  const [replyTexts, setReplyTexts] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
 
   // New ticket form state
@@ -113,15 +113,16 @@ export default function HelpPage() {
   };
 
   const handleReply = async (ticketId: string) => {
-    if (!replyText.trim()) return;
+    const text = replyTexts[ticketId] || "";
+    if (!text.trim()) return;
     setSending(true);
     try {
       await fetch("/api/support-tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "reply", ticketId, message: replyText }),
+        body: JSON.stringify({ action: "reply", ticketId, message: text }),
       });
-      setReplyText("");
+      setReplyTexts((prev) => ({ ...prev, [ticketId]: "" }));
       await fetchTickets();
     } catch {} finally {
       setSending(false);
@@ -353,15 +354,15 @@ export default function HelpPage() {
                           <div className="flex gap-2">
                             <input
                               type="text"
-                              value={expandedId === ticket.id ? replyText : ""}
-                              onChange={(e) => setReplyText(e.target.value)}
+                              value={replyTexts[ticket.id] || ""}
+                              onChange={(e) => setReplyTexts((prev) => ({ ...prev, [ticket.id]: e.target.value }))}
                               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleReply(ticket.id)}
                               placeholder="Type your reply..."
                               className="flex-1 px-4 py-2.5 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-[13px] text-[#111] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#7C3AED]/30 transition-all"
                             />
                             <button
                               onClick={() => handleReply(ticket.id)}
-                              disabled={!replyText.trim() || sending}
+                              disabled={!(replyTexts[ticket.id] || "").trim() || sending}
                               className="px-4 py-2.5 rounded-xl bg-[#7C3AED] text-white hover:bg-[#6D28D9] transition-all disabled:opacity-30"
                             >
                               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

@@ -1,4 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
 export async function POST(req: NextRequest) {
   const { email, couponCode, rewardText, businessName, expiryDate } =
@@ -8,6 +18,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  const admin = createAdminClient();
+  const { data: coupon } = await admin
+    .from("coupons")
+    .select("id, business_id, coupon_code, businesses(name)")
+    .eq("coupon_code", couponCode)
+    .single();
+
+  if (!coupon) {
+    return NextResponse.json({ error: "Invalid coupon" }, { status: 403 });
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -15,6 +36,11 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+
+  const safeBusiness = escapeHtml(businessName || "");
+  const safeCoupon = escapeHtml(couponCode);
+  const safeReward = escapeHtml(rewardText || "");
+  const safeExpiry = escapeHtml(expiryDate || "");
 
   const daysLeft = Math.max(
     0,
@@ -31,7 +57,7 @@ export async function POST(req: NextRequest) {
           <span style="font-size: 28px;">🎁</span>
         </div>
         <h1 style="color: #fff; font-size: 22px; font-weight: 800; margin: 0 0 4px;">Your Reward is Ready!</h1>
-        <p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 0;">from <strong>${businessName}</strong></p>
+        <p style="color: rgba(255,255,255,0.8); font-size: 13px; margin: 0;">from <strong>${safeBusiness}</strong></p>
       </div>
 
       <!-- Coupon Code -->
@@ -39,18 +65,18 @@ export async function POST(req: NextRequest) {
         <div style="background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 4px 24px rgba(22,101,52,0.1); border: 1px solid #E8E2D6;">
           <div style="background: linear-gradient(135deg, #166534, #15803D); padding: 20px; text-align: center;">
             <p style="color: rgba(255,255,255,0.7); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; margin: 0 0 8px; font-weight: 600;">Your Coupon Code</p>
-            <p style="color: #fff; font-size: 28px; font-weight: 800; letter-spacing: 3px; font-family: 'Courier New', monospace; margin: 0;">${couponCode}</p>
+            <p style="color: #fff; font-size: 28px; font-weight: 800; letter-spacing: 3px; font-family: 'Courier New', monospace; margin: 0;">${safeCoupon}</p>
           </div>
           <div style="padding: 20px; text-align: center;">
-            <p style="color: #166534; font-size: 16px; font-weight: 700; margin: 0 0 8px;">${rewardText}</p>
-            <p style="color: #8B9A7E; font-size: 12px; margin: 0;">Expires in <strong style="color: #6B7B68;">${daysLeft} days</strong> &nbsp;|&nbsp; ${expiryDate}</p>
+            <p style="color: #166534; font-size: 16px; font-weight: 700; margin: 0 0 8px;">${safeReward}</p>
+            <p style="color: #8B9A7E; font-size: 12px; margin: 0;">Expires in <strong style="color: #6B7B68;">${daysLeft} days</strong> &nbsp;|&nbsp; ${safeExpiry}</p>
           </div>
         </div>
       </div>
 
       <!-- Instructions -->
       <div style="padding: 0 24px 32px; text-align: center;">
-        <p style="color: #8B9A7E; font-size: 12px; margin: 0 0 16px;">Show this code to the cashier at <strong style="color: #166534;">${businessName}</strong> to redeem your reward.</p>
+        <p style="color: #8B9A7E; font-size: 12px; margin: 0 0 16px;">Show this code to the cashier at <strong style="color: #166534;">${safeBusiness}</strong> to redeem your reward.</p>
         <div style="border-top: 1px solid #E8E2D6; padding-top: 16px;">
           <p style="color: #C4BBA8; font-size: 10px; margin: 0;">Powered by <strong style="color: #166534;">RevuGo</strong></p>
         </div>
@@ -68,7 +94,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: "RevuGo <coupons@reviewflow.in>",
         to: [email],
-        subject: `🎁 Your coupon from ${businessName} — ${couponCode}`,
+        subject: `🎁 Your coupon from ${safeBusiness} — ${safeCoupon}`,
         html,
       }),
     });
