@@ -325,11 +325,10 @@ export default function QRPage() {
   const qrCanvasRef = useRef<HTMLDivElement>(null);
   const [origin, setOrigin] = useState("");
 
-  if (!business) return null;
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
-  const pwaUrl = `${origin}/r/${business.slug}`;
+  const pwaUrl = business ? `${origin}/r/${business.slug}` : "";
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(pwaUrl).then(() => {
@@ -337,6 +336,8 @@ export default function QRPage() {
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => { toast.info(pwaUrl, { style: toastStyle }); });
   }, [pwaUrl]);
+
+  if (!business) return null;
 
   const getQrCanvas = (): HTMLCanvasElement | null => qrCanvasRef.current?.querySelector("canvas") || null;
 
