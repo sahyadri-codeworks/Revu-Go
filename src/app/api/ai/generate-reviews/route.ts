@@ -71,20 +71,29 @@ async function fetchExistingReviews(businessId: string): Promise<string[]> {
 
 export async function POST(request: Request) {
   const body = await request.json();
-  const {
-    businessName, locationArea, locationCity,
-    industrySegment, subIndustry,
-    businessDescription, servicesOffered, staffInfo, businessHighlights,
-    mcqAnswers, mcqNotes, starRating, businessId,
-  } = body;
+  const { mcqAnswers, mcqNotes, starRating, businessId } = body;
 
-  if (!businessId || !businessName || !mcqAnswers) {
+  if (!businessId || !mcqAnswers) {
     return Response.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   const admin = createAdminClient();
-  const { data: biz } = await admin.from("businesses").select("id").eq("id", businessId).single();
+  const { data: biz } = await admin
+    .from("businesses")
+    .select("id, name, location_area, location_city, industry_segment, sub_industry, business_description, services_offered, staff_info, business_highlights")
+    .eq("id", businessId)
+    .single();
   if (!biz) return Response.json({ error: "Invalid business" }, { status: 400 });
+
+  const businessName = biz.name;
+  const locationArea = biz.location_area;
+  const locationCity = biz.location_city;
+  const industrySegment = biz.industry_segment;
+  const subIndustry = biz.sub_industry;
+  const businessDescription = biz.business_description;
+  const servicesOffered = biz.services_offered;
+  const staffInfo = biz.staff_info;
+  const businessHighlights = biz.business_highlights;
 
   if (!GROQ_API_KEY) {
     return Response.json({ reviews: generateMinimalFallback(businessName, mcqAnswers, mcqNotes, starRating), source: "fallback" });

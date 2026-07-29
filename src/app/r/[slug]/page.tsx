@@ -50,52 +50,42 @@ export default function CustomerReviewPage() {
   useEffect(() => {
     async function fetchData() {
       const supabase = createClient();
-      const { data: biz, error: bizErr } = await supabase
-        .from("businesses")
-        .select("*")
-        .eq("slug", slug)
-        .eq("is_active", true)
-        .single();
+      const { data: result, error: rpcErr } = await supabase
+        .rpc("get_review_page_data", { p_slug: slug });
 
-      if (bizErr || !biz) { setError("Business not found"); setLoading(false); return; }
+      if (rpcErr || !result?.business) { setError("Business not found"); setLoading(false); return; }
 
+      const biz = result.business;
       const mappedBusiness: Business = {
-        id: biz.id, owner_id: biz.owner_id, name: biz.name, slug: biz.slug,
+        id: biz.id, owner_id: "", name: biz.name, slug: biz.slug,
         logo_url: biz.logo_url || "", google_maps_url: biz.google_maps_url || "",
         google_place_id: biz.google_place_id || "", category: biz.category || "other",
         location_city: biz.location_city || "", location_area: biz.location_area || "",
         website: biz.website || "", instagram_url: biz.instagram_url || "",
-        plan: biz.plan || "starter", is_active: biz.is_active, created_at: biz.created_at,
+        plan: "starter", is_active: biz.is_active, created_at: biz.created_at,
       };
       setBusiness(mappedBusiness);
       setIndustrySegment(biz.industry_segment || "");
       setSubIndustry(biz.sub_industry || "");
       setBusinessProfile({
-        businessDescription: biz.business_description || "",
-        servicesOffered: biz.services_offered || "",
-        staffInfo: biz.staff_info || "",
-        businessHighlights: biz.business_highlights || "",
+        businessDescription: "",
+        servicesOffered: "",
+        staffInfo: "",
+        businessHighlights: "",
       });
 
-      const { data: camps } = await supabase
-        .from("campaigns").select("*")
-        .eq("business_id", biz.id).eq("is_active", true)
-        .order("created_at", { ascending: false });
-
-      const activeCamps = (camps || []).filter(
-        (c) => new Date(c.expires_at) >= new Date()
-      );
-      const availableCamps = activeCamps.filter(
-        (c) => !c.max_redemptions || (c.redeemed_count || 0) < c.max_redemptions
+      const camps = (result.campaigns || []) as Record<string, unknown>[];
+      const availableCamps = camps.filter(
+        (c) => !c.max_redemptions || ((c.redeemed_count as number) || 0) < (c.max_redemptions as number)
       );
       if (availableCamps.length > 0) {
         const picked = availableCamps[Math.floor(Math.random() * availableCamps.length)];
         setCampaign({
-          id: picked.id, business_id: picked.business_id, title: picked.title,
-          offer_text: picked.offer_text, coupon_prefix: picked.coupon_prefix,
-          reward_type: picked.reward_type || "own_discount", is_active: picked.is_active,
-          max_redemptions: picked.max_redemptions, redeemed_count: picked.redeemed_count || 0,
-          starts_at: picked.starts_at, expires_at: picked.expires_at, created_at: picked.created_at,
+          id: picked.id as string, business_id: picked.business_id as string, title: picked.title as string,
+          offer_text: picked.offer_text as string, coupon_prefix: picked.coupon_prefix as string,
+          reward_type: (picked.reward_type as "own_discount" | "brand_voucher" | "surprise") || "own_discount", is_active: picked.is_active as boolean,
+          max_redemptions: picked.max_redemptions as number, redeemed_count: (picked.redeemed_count as number) || 0,
+          starts_at: picked.starts_at as string, expires_at: picked.expires_at as string, created_at: picked.created_at as string,
         });
       }
       setLoading(false);
@@ -164,7 +154,7 @@ function CustomerFlow({
   const [finalReviewText, setFinalReviewText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNegativeFeedback, setIsNegativeFeedback] = useState(false);
-  const [couponCode] = useState(() => {
+  const [couponCode, setCouponCode] = useState(() => {
     const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
     return campaign ? `${campaign.coupon_prefix}-${suffix}` : `RF-${suffix}`;
   });
@@ -182,11 +172,8 @@ function CustomerFlow({
       const res = await fetch("/api/ai/generate-mcq", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          industrySegment, subIndustry, businessName: business.name,
-          businessDescription: businessProfile.businessDescription,
-          servicesOffered: businessProfile.servicesOffered,
-          staffInfo: businessProfile.staffInfo,
-          businessHighlights: businessProfile.businessHighlights,
+          businessId: business.id,
+          industrySegment, subIndustry,
           starRating,
           questionIndex: index,
           previousQA: prevQA,
@@ -246,12 +233,6 @@ function CustomerFlow({
               const res = await fetch("/api/ai/generate-reviews", {
                 method: "POST", headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  businessName: business.name, locationArea: business.location_area,
-                  locationCity: business.location_city, industrySegment, subIndustry,
-                  businessDescription: businessProfile.businessDescription,
-                  servicesOffered: businessProfile.servicesOffered,
-                  staffInfo: businessProfile.staffInfo,
-                  businessHighlights: businessProfile.businessHighlights,
                   mcqAnswers, mcqNotes, starRating,
                   businessId: business.id,
                 }),
@@ -333,20 +314,20 @@ function CustomerFlow({
   const handleScratchRevealed = useCallback(async () => {
     if (campaign && sessionId) {
       try {
-        await fetch("/api/review/submit", {
+        const res = await fetch("/api/review/submit", {
           method: "POST", headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "create-coupon",
             session_id: sessionId, business_id: business.id,
-            campaign_id: campaign.id, coupon_code: couponCode,
-            reward_type: campaign.reward_type || "own_discount",
-            reward_value: campaign.offer_text, expires_at: campaign.expires_at,
+            campaign_id: campaign.id,
           }),
         });
+        const data = await res.json();
+        if (data.coupon_code) setCouponCode(data.coupon_code);
       } catch {}
     }
     setTimeout(() => setStep("final"), 1200);
-  }, [campaign, sessionId, business.id, couponCode]);
+  }, [campaign, sessionId, business.id]);
 
   const offerText = campaign?.offer_text || "Share your experience with us!";
   const expiryDate = campaign?.expires_at?.split("T")[0] || "2026-12-31";

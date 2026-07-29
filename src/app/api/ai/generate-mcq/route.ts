@@ -1,5 +1,4 @@
 import { getMCQQuestions } from "@/lib/mcq-templates";
-import { createAdminClient } from "@/lib/supabase/admin";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -31,17 +30,38 @@ async function callGroq(prompt: string, temperature = 1.0): Promise<string> {
 export async function POST(request: Request) {
   const body = await request.json();
   const {
-    industrySegment,
-    subIndustry,
-    businessName,
-    businessDescription,
-    servicesOffered,
-    staffInfo,
-    businessHighlights,
+    businessId,
     starRating,
     questionIndex,
     previousQA,
   } = body;
+
+  let industrySegment = body.industrySegment || "";
+  let subIndustry = body.subIndustry || "";
+  let businessName = "";
+  let businessDescription = "";
+  let servicesOffered = "";
+  let staffInfo = "";
+  let businessHighlights = "";
+
+  if (businessId) {
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { data: biz } = await admin
+      .from("businesses")
+      .select("name, industry_segment, sub_industry, business_description, services_offered, staff_info, business_highlights")
+      .eq("id", businessId)
+      .single();
+    if (biz) {
+      businessName = biz.name;
+      industrySegment = biz.industry_segment || industrySegment;
+      subIndustry = biz.sub_industry || subIndustry;
+      businessDescription = biz.business_description || "";
+      servicesOffered = biz.services_offered || "";
+      staffInfo = biz.staff_info || "";
+      businessHighlights = biz.business_highlights || "";
+    }
+  }
 
   const hasProfile = businessDescription || servicesOffered || staffInfo || businessHighlights;
 
