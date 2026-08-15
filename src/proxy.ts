@@ -39,6 +39,7 @@ export async function proxy(request: NextRequest) {
     pathname === "/terms" ||
     pathname === "/impersonate-session" ||
     pathname.startsWith("/r/") ||
+    pathname.startsWith("/go/") ||
     pathname.startsWith("/auth/") ||
     pathname.startsWith("/api/");
 

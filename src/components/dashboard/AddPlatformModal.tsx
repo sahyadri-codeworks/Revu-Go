@@ -184,7 +184,7 @@ export function AddPlatformModal({ open, onClose, onAdded, connectedKeys }: AddP
                 />
               </div>
               <p className="text-[10px] text-[#9CA3AF] mt-1.5">
-                Enter the direct URL where customers can leave a review on {selected.shortName}
+                Enter the direct URL where customers can leave a review on {selected.shortName} (optional — you can add it later)
               </p>
             </div>
 
@@ -202,7 +202,7 @@ export function AddPlatformModal({ open, onClose, onAdded, connectedKeys }: AddP
               </button>
               <button
                 onClick={() => handleSave(selected, reviewUrl)}
-                disabled={saving || !reviewUrl.trim()}
+                disabled={saving}
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#7C3AED] text-white text-[13px] font-bold hover:bg-[#6D28D9] disabled:opacity-50 transition-colors"
               >
                 {saving ? (

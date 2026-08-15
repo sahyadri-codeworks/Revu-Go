@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X, ChevronDown } from "lucide-react";
+import { PLATFORMS, getPlatformMeta } from "@/lib/platforms";
+import type { BusinessPlatform } from "@/types";
 
 interface LaunchCampaignModalProps {
   open: boolean;
@@ -13,15 +15,18 @@ interface LaunchCampaignModalProps {
     couponPrefix: string;
     maxPayouts: number;
     expiry: string;
+    platformKey?: string;
   }) => void;
+  connectedPlatforms?: BusinessPlatform[];
 }
 
-export function LaunchCampaignModal({ open, onClose, onDeploy }: LaunchCampaignModalProps) {
+export function LaunchCampaignModal({ open, onClose, onDeploy, connectedPlatforms = [] }: LaunchCampaignModalProps) {
   const [title, setTitle] = useState("");
   const [offerText, setOfferText] = useState("");
   const [couponPrefix, setCouponPrefix] = useState("");
   const [maxPayouts, setMaxPayouts] = useState("100");
   const [expiry, setExpiry] = useState("");
+  const [platformKey, setPlatformKey] = useState("revugo");
 
   const canDeploy = title.trim() && offerText.trim();
 
@@ -33,12 +38,14 @@ export function LaunchCampaignModal({ open, onClose, onDeploy }: LaunchCampaignM
       couponPrefix: couponPrefix || title.slice(0, 6).toUpperCase().replace(/\s/g, ""),
       maxPayouts: parseInt(maxPayouts) || 100,
       expiry: expiry || new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+      platformKey,
     });
     setTitle("");
     setOfferText("");
     setCouponPrefix("");
     setMaxPayouts("100");
     setExpiry("");
+    setPlatformKey("revugo");
   };
 
   const handleCancel = () => {
@@ -47,8 +54,26 @@ export function LaunchCampaignModal({ open, onClose, onDeploy }: LaunchCampaignM
     setCouponPrefix("");
     setMaxPayouts("100");
     setExpiry("");
+    setPlatformKey("revugo");
     onClose();
   };
+
+  const availablePlatforms = [
+    { key: "revugo", name: "RevuGo (Our Platform)", color: "#7C3AED", icon: "R" },
+    ...connectedPlatforms
+      .filter((p) => p.is_connected)
+      .map((p) => {
+        const meta = getPlatformMeta(p.platform_key);
+        return {
+          key: p.platform_key,
+          name: p.display_name,
+          color: meta?.color || "#6B7280",
+          icon: meta?.icon || p.platform_key.charAt(0).toUpperCase(),
+        };
+      }),
+  ];
+
+  const selectedMeta = availablePlatforms.find((p) => p.key === platformKey) || availablePlatforms[0];
 
   const inputClass =
     "w-full px-4 py-3 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#111] text-sm placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#7C3AED]/30 focus:ring-1 focus:ring-[#7C3AED]/15 transition-all duration-200";
@@ -115,6 +140,38 @@ export function LaunchCampaignModal({ open, onClose, onDeploy }: LaunchCampaignM
                     placeholder="e.g. Rate us 5 stars to unlock a free espresso!"
                     className={inputClass}
                   />
+                </div>
+
+                {/* Platform Selector */}
+                <div>
+                  <label className={labelClass}>Review Platform</label>
+                  <div className="relative">
+                    <select
+                      value={platformKey}
+                      onChange={(e) => setPlatformKey(e.target.value)}
+                      className={`${inputClass} appearance-none cursor-pointer pr-10`}
+                    >
+                      {availablePlatforms.map((p) => (
+                        <option key={p.key} value={p.key}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280] pointer-events-none" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <div
+                      className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[9px] font-bold"
+                      style={{ backgroundColor: selectedMeta.color }}
+                    >
+                      {selectedMeta.icon}
+                    </div>
+                    <span className="text-[11px] text-[#9CA3AF]">
+                      {platformKey === "revugo"
+                        ? "QR will link to RevuGo review page"
+                        : `QR will link to ${selectedMeta.name} review page`}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

@@ -85,7 +85,8 @@ export default function CustomerReviewPage() {
           offer_text: picked.offer_text as string, coupon_prefix: picked.coupon_prefix as string,
           reward_type: (picked.reward_type as "own_discount" | "brand_voucher" | "surprise") || "own_discount", is_active: picked.is_active as boolean,
           max_redemptions: picked.max_redemptions as number, redeemed_count: (picked.redeemed_count as number) || 0,
-          starts_at: picked.starts_at as string, expires_at: picked.expires_at as string, created_at: picked.created_at as string,
+          starts_at: picked.starts_at as string, expires_at: picked.expires_at as string,
+          platform_key: (picked.platform_key as string) || "revugo", created_at: picked.created_at as string,
         });
       }
       setLoading(false);

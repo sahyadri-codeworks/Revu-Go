@@ -6,9 +6,10 @@ import {
   TrendingUp, TrendingDown, Minus,
   Star, Users, BarChart3, Zap, Calendar,
   ThumbsUp, ThumbsDown, Meh,
-  Hash, Sparkles,
+  Hash, Sparkles, ChevronDown,
 } from "lucide-react";
 import { useState, useMemo } from "react";
+import { getPlatformMeta } from "@/lib/platforms";
 
 type TimeRange = "15d" | "30d" | "90d" | "365d" | "all";
 
@@ -34,14 +35,20 @@ function formatDate(dateStr: string) {
 }
 
 export default function AnalyticsPage() {
-  const { sessions, coupons } = useAppState();
+  const { sessions, coupons, campaigns } = useAppState();
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
+  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("all");
+
+  const campaignFiltered = useMemo(() => {
+    if (selectedCampaignId === "all") return sessions;
+    return sessions.filter((s) => s.campaign_id === selectedCampaignId);
+  }, [sessions, selectedCampaignId]);
 
   const filtered = useMemo(() => {
     const threshold = getDateThreshold(timeRange);
-    if (!threshold) return sessions;
-    return sessions.filter((s) => new Date(s.created_at) >= threshold);
-  }, [sessions, timeRange]);
+    if (!threshold) return campaignFiltered;
+    return campaignFiltered.filter((s) => new Date(s.created_at) >= threshold);
+  }, [campaignFiltered, timeRange]);
 
   const prevFiltered = useMemo(() => {
     const threshold = getDateThreshold(timeRange);
@@ -49,11 +56,11 @@ export default function AnalyticsPage() {
     const days = parseInt(timeRange);
     const prevStart = new Date(threshold);
     prevStart.setDate(prevStart.getDate() - days);
-    return sessions.filter((s) => {
+    return campaignFiltered.filter((s) => {
       const d = new Date(s.created_at);
       return d >= prevStart && d < threshold;
     });
-  }, [sessions, timeRange]);
+  }, [campaignFiltered, timeRange]);
 
   // Star distribution
   const starDist = [0, 0, 0, 0, 0];
@@ -177,29 +184,56 @@ export default function AnalyticsPage() {
   return (
     <div>
       {/* Header with time filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-lg font-semibold text-[#111] tracking-[-0.01em]">Analytics</h2>
-          <p className="text-[13px] text-[#6B7280] mt-0.5">
-            Performance insights for your business
-          </p>
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg font-semibold text-[#111] tracking-[-0.01em]">Analytics</h2>
+            <p className="text-[13px] text-[#6B7280] mt-0.5">
+              Performance insights for your business
+            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5 p-1 bg-[#F3F4F6] rounded-xl">
+            {(Object.keys(TIME_LABELS) as TimeRange[]).map((key) => (
+              <button
+                key={key}
+                onClick={() => setTimeRange(key)}
+                className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
+                  timeRange === key
+                    ? "bg-white text-[#7C3AED] shadow-sm"
+                    : "text-[#6B7280] hover:text-[#111]"
+                }`}
+              >
+                {TIME_LABELS[key]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 p-1 bg-[#F3F4F6] rounded-xl">
-          {(Object.keys(TIME_LABELS) as TimeRange[]).map((key) => (
-            <button
-              key={key}
-              onClick={() => setTimeRange(key)}
-              className={`px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                timeRange === key
-                  ? "bg-white text-[#7C3AED] shadow-sm"
-                  : "text-[#6B7280] hover:text-[#111]"
-              }`}
-            >
-              {TIME_LABELS[key]}
-            </button>
-          ))}
-        </div>
+        {/* Campaign filter */}
+        {campaigns.length > 0 && (
+          <div className="flex items-center gap-3">
+            <label className="text-[10px] text-[#6B7280] uppercase tracking-[0.12em] font-semibold whitespace-nowrap">Campaign</label>
+            <div className="relative flex-1 max-w-xs">
+              <select
+                value={selectedCampaignId}
+                onChange={(e) => setSelectedCampaignId(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#111] text-[13px] focus:outline-none focus:border-[#7C3AED]/30 appearance-none cursor-pointer pr-8"
+              >
+                <option value="all">All Campaigns</option>
+                {campaigns.map((c) => {
+                  const meta = getPlatformMeta(c.platform_key || "revugo");
+                  return (
+                    <option key={c.id} value={c.id}>
+                      {c.title} — {meta?.shortName || "RevuGo"}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#6B7280] pointer-events-none" />
+            </div>
+          </div>
+        )}
       </div>
 
       {totalSessions === 0 ? (

@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Printer, Trash2, Calendar, Circle, Pencil, X } from "lucide-react";
 import { useAppState } from "@/lib/app-context";
 import { useCampaignModal } from "../layout";
+import { getPlatformMeta } from "@/lib/platforms";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState, useEffect } from "react";
@@ -117,6 +118,22 @@ export default function CampaignsPage() {
                     <Circle className={`w-3.5 h-3.5 ${isActive ? "fill-[#10B981]" : ""}`} />
                   </button>
                 </div>
+
+                {/* Platform badge */}
+                {(() => {
+                  const meta = getPlatformMeta(campaign.platform_key || "revugo");
+                  return meta ? (
+                    <div className="flex items-center gap-2 mb-3">
+                      <div
+                        className="w-5 h-5 rounded-md flex items-center justify-center text-white text-[9px] font-bold"
+                        style={{ backgroundColor: meta.color }}
+                      >
+                        {meta.icon}
+                      </div>
+                      <span className="text-[11px] text-[#6B7280] font-medium">{meta.shortName}</span>
+                    </div>
+                  ) : null;
+                })()}
 
                 {/* Title + offer */}
                 <h3 className="font-bold text-[15px] text-[#111] mb-1.5 leading-snug">

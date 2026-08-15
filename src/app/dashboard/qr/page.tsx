@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Download, Printer, Copy, Check, ChevronDown, FileText } from "lucide-react";
+import { Download, Printer, Copy, Check, ChevronDown, FileText, Search } from "lucide-react";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { useAppState } from "@/lib/app-context";
+import { getPlatformMeta } from "@/lib/platforms";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 
@@ -24,6 +25,7 @@ async function buildFlyerCanvas(
   qrCanvas: HTMLCanvasElement,
   businessName: string,
   logoUrl: string,
+  platformName?: string,
 ): Promise<HTMLCanvasElement> {
   const W = 1200;
   const H = 1900;
@@ -32,11 +34,9 @@ async function buildFlyerCanvas(
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
 
-  // Light gray background
   ctx.fillStyle = "#EDEEF0";
   ctx.fillRect(0, 0, W, H);
 
-  // White card with shadow
   ctx.shadowColor = "rgba(0,0,0,0.12)";
   ctx.shadowBlur = 40;
   ctx.shadowOffsetY = 8;
@@ -49,7 +49,6 @@ async function buildFlyerCanvas(
   let y = 120;
   const cx = W / 2;
 
-  // === Business Logo Circle with dashed border ===
   const logoR = 65;
   ctx.save();
   ctx.strokeStyle = "#C8C8CC";
@@ -79,14 +78,12 @@ async function buildFlyerCanvas(
 
   y += logoR * 2 + 50;
 
-  // === Business Name ===
   ctx.fillStyle = "#1A1A2E";
   ctx.font = "bold 48px 'Inter', Arial, sans-serif";
   ctx.textAlign = "center";
   ctx.fillText(businessName, cx, y);
   y += 48;
 
-  // === "Thank you for choosing us!" with decorative lines ===
   ctx.fillStyle = "#9CA3AF";
   ctx.font = "24px 'Inter', Arial, sans-serif";
   const tyText = "Thank you for choosing us!";
@@ -94,21 +91,18 @@ async function buildFlyerCanvas(
   const lineGap = 20;
   const lineLen = 80;
   ctx.fillText(tyText, cx, y);
-  // Left line
   ctx.strokeStyle = "#D1D5DB";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
   ctx.moveTo(cx - tyW / 2 - lineGap - lineLen, y - 8);
   ctx.lineTo(cx - tyW / 2 - lineGap, y - 8);
   ctx.stroke();
-  // Right line
   ctx.beginPath();
   ctx.moveTo(cx + tyW / 2 + lineGap, y - 8);
   ctx.lineTo(cx + tyW / 2 + lineGap + lineLen, y - 8);
   ctx.stroke();
   y += 60;
 
-  // === RevuGo Logo ===
   try {
     const revuLogo = await loadImage("/logo-name.png");
     const rlH = 110;
@@ -122,29 +116,26 @@ async function buildFlyerCanvas(
     y += 80;
   }
 
-  // === "Review us" gradient text ===
-  const revGrad = ctx.createLinearGradient(cx - 200, y, cx + 200, y + 70);
+  const reviewText = platformName && platformName !== "RevuGo" ? `Review us on ${platformName}` : "Review us";
+  const revGrad = ctx.createLinearGradient(cx - 300, y, cx + 300, y + 70);
   revGrad.addColorStop(0, "#7C3AED");
   revGrad.addColorStop(1, "#2563EB");
   ctx.fillStyle = revGrad;
-  ctx.font = "bold 80px 'Inter', Arial, sans-serif";
-  ctx.fillText("Review us", cx, y + 10);
+  ctx.font = `bold ${platformName && platformName !== "RevuGo" ? 60 : 80}px 'Inter', Arial, sans-serif`;
+  ctx.fillText(reviewText, cx, y + 10);
   y += 60;
 
-  // === "Your feedback helps us grow ❤️" ===
   ctx.fillStyle = "#6B7280";
   ctx.font = "26px 'Inter', Arial, sans-serif";
   ctx.fillText("Your feedback helps us grow  ❤️", cx, y);
   y += 60;
 
-  // === QR Code Box with gradient border ===
   const qrSize = 480;
   const qrPad = 28;
   const boxSize = qrSize + qrPad * 2;
   const boxX = (W - boxSize) / 2;
   const boxY = y;
 
-  // Gradient border
   const borderW = 5;
   const bGrad = ctx.createLinearGradient(boxX, boxY, boxX + boxSize, boxY + boxSize);
   bGrad.addColorStop(0, "#7C3AED");
@@ -156,16 +147,13 @@ async function buildFlyerCanvas(
   ctx.roundRect(boxX, boxY, boxSize, boxSize, 22);
   ctx.stroke();
 
-  // White interior
   ctx.fillStyle = "#FFFFFF";
   ctx.beginPath();
   ctx.roundRect(boxX + borderW, boxY + borderW, boxSize - borderW * 2, boxSize - borderW * 2, 18);
   ctx.fill();
 
-  // QR image
   ctx.drawImage(qrCanvas, boxX + qrPad, boxY + qrPad, qrSize, qrSize);
 
-  // RevuGo icon in center
   try {
     const icon = await loadImage("/logo.png");
     const iSize = 80;
@@ -180,7 +168,6 @@ async function buildFlyerCanvas(
 
   y = boxY + boxSize + 45;
 
-  // === "It's simple & quick" with purple side lines ===
   ctx.fillStyle = "#7C3AED";
   ctx.font = "bold 24px 'Inter', Arial, sans-serif";
   const sqText = "It's simple & quick";
@@ -198,7 +185,6 @@ async function buildFlyerCanvas(
   ctx.stroke();
   y += 55;
 
-  // === 3 Steps ===
   const stepData = [
     { icon: "📱", title: "1. Scan QR", l1: "Scan this QR code", l2: "with your phone" },
     { icon: "📋", title: "2. Answer", l1: "Answer a few simple", l2: "questions" },
@@ -209,8 +195,6 @@ async function buildFlyerCanvas(
 
   for (let i = 0; i < 3; i++) {
     const scx = stepStartX + stepW * i + stepW / 2;
-
-    // Circle bg
     ctx.beginPath();
     ctx.arc(scx, y + 6, 40, 0, Math.PI * 2);
     ctx.fillStyle = "#F0ECFF";
@@ -218,27 +202,19 @@ async function buildFlyerCanvas(
     ctx.strokeStyle = "#E0DAFF";
     ctx.lineWidth = 2;
     ctx.stroke();
-
-    // Icon
     ctx.font = "28px Arial";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(stepData[i].icon, scx, y + 8);
     ctx.textBaseline = "alphabetic";
-
-    // Arrow
     if (i < 2) {
       ctx.fillStyle = "#C4B5FD";
       ctx.font = "30px Arial";
       ctx.fillText("→", scx + stepW / 2, y + 10);
     }
-
-    // Title
     ctx.fillStyle = "#1A1A2E";
     ctx.font = "bold 24px 'Inter', Arial, sans-serif";
     ctx.fillText(stepData[i].title, scx, y + 76);
-
-    // Description
     ctx.fillStyle = "#9CA3AF";
     ctx.font = "20px 'Inter', Arial, sans-serif";
     ctx.fillText(stepData[i].l1, scx, y + 106);
@@ -247,11 +223,9 @@ async function buildFlyerCanvas(
 
   y += 170;
 
-  // === Bottom blue diagonal wave + bar ===
   const barH = 160;
   const barY = H - 80 - barH;
 
-  // Blue wave shape (diagonal top edge)
   ctx.fillStyle = "#2563EB";
   ctx.beginPath();
   ctx.moveTo(60, barY + 60);
@@ -263,7 +237,6 @@ async function buildFlyerCanvas(
   ctx.closePath();
   ctx.fill();
 
-  // Gift icon circle
   const giftCx = 170;
   const giftCy = barY + barH / 2 + 20;
   ctx.beginPath();
@@ -277,7 +250,6 @@ async function buildFlyerCanvas(
   ctx.fillText("🎁", giftCx, giftCy);
   ctx.textBaseline = "alphabetic";
 
-  // "Thank you!" text
   ctx.fillStyle = "#FFFFFF";
   ctx.font = "bold 32px 'Inter', Arial, sans-serif";
   ctx.textAlign = "left";
@@ -287,7 +259,6 @@ async function buildFlyerCanvas(
   ctx.fillText("You may receive a special reward", 240, giftCy + 16);
   ctx.fillText("for your feedback.", 240, giftCy + 44);
 
-  // Decorative stars (right side)
   ctx.fillStyle = "rgba(255,255,255,0.25)";
   ctx.textAlign = "center";
   ctx.font = "36px Arial";
@@ -317,8 +288,9 @@ function drawInitial(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: n
 }
 
 export default function QRPage() {
-  const { business, campaigns } = useAppState();
+  const { business, campaigns, platforms } = useAppState();
   const [selectedCampaignId, setSelectedCampaignId] = useState(campaigns[0]?.id || "");
+  const [filterText, setFilterText] = useState("");
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const flyerRef = useRef<HTMLDivElement>(null);
@@ -327,15 +299,47 @@ export default function QRPage() {
 
   useEffect(() => { setOrigin(window.location.origin); }, []);
 
+  useEffect(() => {
+    if (campaigns.length > 0 && !campaigns.find((c) => c.id === selectedCampaignId)) {
+      setSelectedCampaignId(campaigns[0].id);
+    }
+  }, [campaigns, selectedCampaignId]);
+
   const selectedCampaign = campaigns.find((c) => c.id === selectedCampaignId) || campaigns[0];
-  const pwaUrl = business ? `${origin}/r/${business.slug}` : "";
+
+  const filteredCampaigns = useMemo(() => {
+    if (!filterText.trim()) return campaigns;
+    const lower = filterText.toLowerCase();
+    return campaigns.filter((c) =>
+      c.title.toLowerCase().includes(lower) ||
+      c.platform_key.toLowerCase().includes(lower)
+    );
+  }, [campaigns, filterText]);
+
+  const getQrUrl = useCallback(() => {
+    if (!business || !selectedCampaign) return "";
+    const platformKey = selectedCampaign.platform_key || "revugo";
+    if (platformKey === "revugo") {
+      return `${origin}/r/${business.slug}`;
+    }
+    const platform = platforms.find((p) => p.platform_key === platformKey);
+    if (platform?.review_url) {
+      return platform.review_url;
+    }
+    return `${origin}/r/${business.slug}`;
+  }, [business, selectedCampaign, platforms, origin]);
+
+  const qrUrl = getQrUrl();
+
+  const platformMeta = selectedCampaign ? getPlatformMeta(selectedCampaign.platform_key || "revugo") : null;
+  const platformDisplayName = platformMeta?.shortName || "RevuGo";
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(pwaUrl).then(() => {
+    navigator.clipboard.writeText(qrUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    }).catch(() => { toast.info(pwaUrl, { style: toastStyle }); });
-  }, [pwaUrl]);
+    }).catch(() => { toast.info(qrUrl, { style: toastStyle }); });
+  }, [qrUrl]);
 
   if (!business) return null;
 
@@ -346,13 +350,14 @@ export default function QRPage() {
     if (!qrCanvas) { toast.error("QR code not ready", { style: toastStyle }); return; }
     setDownloading(true);
     try {
-      const flyerCanvas = await buildFlyerCanvas(qrCanvas, business.name, business.logo_url || "");
+      const flyerCanvas = await buildFlyerCanvas(qrCanvas, business.name, business.logo_url || "", platformDisplayName);
       const imgData = flyerCanvas.toDataURL("image/png");
       const pdfW = 210;
       const pdfH = (flyerCanvas.height / flyerCanvas.width) * pdfW;
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: [pdfW, pdfH] });
       pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
-      pdf.save(`${business.slug}-qr-flyer.pdf`);
+      const campaignSlug = selectedCampaign?.title.toLowerCase().replace(/\s+/g, "-").slice(0, 20) || "flyer";
+      pdf.save(`${business.slug}-${campaignSlug}-qr-flyer.pdf`);
       toast.success("PDF downloaded!", { style: toastStyle });
     } catch (err) { console.error(err); toast.error("Failed to generate PDF", { style: toastStyle }); }
     finally { setDownloading(false); }
@@ -363,9 +368,10 @@ export default function QRPage() {
     if (!qrCanvas) { toast.error("QR code not ready", { style: toastStyle }); return; }
     setDownloading(true);
     try {
-      const flyerCanvas = await buildFlyerCanvas(qrCanvas, business.name, business.logo_url || "");
+      const flyerCanvas = await buildFlyerCanvas(qrCanvas, business.name, business.logo_url || "", platformDisplayName);
       const link = document.createElement("a");
-      link.download = `${business.slug}-qr-flyer.png`;
+      const campaignSlug = selectedCampaign?.title.toLowerCase().replace(/\s+/g, "-").slice(0, 20) || "flyer";
+      link.download = `${business.slug}-${campaignSlug}-qr-flyer.png`;
       link.href = flyerCanvas.toDataURL("image/png");
       link.click();
       toast.success("PNG downloaded!", { style: toastStyle });
@@ -373,13 +379,11 @@ export default function QRPage() {
     finally { setDownloading(false); }
   };
 
-  const hasCampaigns = campaigns.length > 0;
-
   return (
     <div className="max-w-2xl mx-auto">
       {/* Hidden QR canvas for export */}
       <div ref={qrCanvasRef} className="absolute -left-[9999px] -top-[9999px]">
-        <QRCodeCanvas value={pwaUrl} size={480} level="H" bgColor="#FFFFFF" fgColor="#111827" />
+        <QRCodeCanvas value={qrUrl || "https://revugo.in"} size={480} level="H" bgColor="#FFFFFF" fgColor="#111827" />
       </div>
 
       {/* Header */}
@@ -393,34 +397,76 @@ export default function QRPage() {
         </p>
       </div>
 
-      {/* Campaign selector */}
-      {campaigns.length > 1 && (
-        <div className="mb-6">
-          <label className="block text-[9px] text-[#6B7280] uppercase tracking-[0.2em] font-semibold mb-2">Select Campaign</label>
-          <div className="relative">
-            <select value={selectedCampaignId} onChange={(e) => setSelectedCampaignId(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#111] text-sm focus:outline-none focus:border-[#7C3AED]/30 appearance-none cursor-pointer">
-              {campaigns.map((c) => (
-                <option key={c.id} value={c.id} style={{ background: "#fff", color: "#111" }}>
-                  {c.title} {!c.is_active ? "(Inactive)" : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280] pointer-events-none" />
+      {/* Campaign filter & selector */}
+      {campaigns.length > 0 && (
+        <div className="mb-6 space-y-3">
+          {campaigns.length > 3 && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
+              <input
+                type="text"
+                placeholder="Filter campaigns..."
+                value={filterText}
+                onChange={(e) => setFilterText(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-sm text-[#111] placeholder:text-[#9CA3AF] focus:outline-none focus:border-[#7C3AED]/30"
+              />
+            </div>
+          )}
+          <div>
+            <label className="block text-[9px] text-[#6B7280] uppercase tracking-[0.2em] font-semibold mb-2">Select Campaign</label>
+            <div className="relative">
+              <select
+                value={selectedCampaignId}
+                onChange={(e) => setSelectedCampaignId(e.target.value)}
+                className="w-full px-4 py-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#111] text-sm focus:outline-none focus:border-[#7C3AED]/30 appearance-none cursor-pointer"
+              >
+                {filteredCampaigns.map((c) => {
+                  const meta = getPlatformMeta(c.platform_key || "revugo");
+                  return (
+                    <option key={c.id} value={c.id} style={{ background: "#fff", color: "#111" }}>
+                      {c.title} — {meta?.shortName || "RevuGo"} {!c.is_active ? "(Inactive)" : ""}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280] pointer-events-none" />
+            </div>
           </div>
+
+          {/* Selected campaign info */}
+          {selectedCampaign && (
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#F9FAFB] border border-[#F3F4F6]">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
+                style={{ backgroundColor: platformMeta?.color || "#7C3AED" }}
+              >
+                {platformMeta?.icon || "R"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-[#111] truncate">{selectedCampaign.title}</p>
+                <p className="text-[10px] text-[#9CA3AF]">
+                  Platform: {platformDisplayName} &middot; {selectedCampaign.is_active ? "Active" : "Inactive"}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ====== FLYER PREVIEW — exact match to reference ====== */}
+      {campaigns.length === 0 && (
+        <div className="mb-6 p-6 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-center">
+          <p className="text-[13px] text-[#6B7280]">No campaigns created yet. Create a campaign first to generate platform-specific QR codes.</p>
+        </div>
+      )}
+
+      {/* ====== FLYER PREVIEW ====== */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-[#EDEEF0] rounded-2xl p-5 sm:p-8 mb-6"
       >
         <div ref={flyerRef} className="mx-auto max-w-[420px] bg-white rounded-2xl shadow-xl overflow-hidden">
-          {/* White content area */}
           <div className="px-8 pt-8 pb-5 flex flex-col items-center">
-            {/* Business Logo */}
             <div className="w-[88px] h-[88px] rounded-full border-[2.5px] border-dashed border-[#C8C8CC] flex items-center justify-center mb-5 overflow-hidden">
               {business.logo_url && business.logo_url.startsWith("http") ? (
                 <img src={business.logo_url} alt={business.name} className="w-full h-full object-cover rounded-full" />
@@ -431,33 +477,26 @@ export default function QRPage() {
               )}
             </div>
 
-            {/* Business Name */}
             <h3 className="text-[22px] font-bold text-[#1A1A2E] mb-1 text-center">{business.name}</h3>
 
-            {/* Thank you line with side decorations */}
             <div className="flex items-center gap-3 mb-6">
               <div className="w-12 h-px bg-[#D1D5DB]" />
               <p className="text-[12px] text-[#9CA3AF] whitespace-nowrap">Thank you for choosing us!</p>
               <div className="w-12 h-px bg-[#D1D5DB]" />
             </div>
 
-            {/* RevuGo logo */}
             <img src="/logo-name.png" alt="RevuGo" className="h-20 object-contain mix-blend-multiply mb-3" />
 
-            {/* "Review us" */}
             <h4 className="text-[36px] font-extrabold bg-gradient-to-r from-[#7C3AED] to-[#2563EB] bg-clip-text text-transparent leading-tight mb-1">
-              Review us
+              {platformDisplayName !== "RevuGo" ? `Review on ${platformDisplayName}` : "Review us"}
             </h4>
 
-            {/* Subtitle */}
             <p className="text-[13px] text-[#6B7280] mb-5">Your feedback helps us grow <span className="text-[#7C3AED]">❤️</span></p>
 
-            {/* QR Code with gradient border */}
             <div className="relative mb-5 rounded-2xl" style={{ background: "linear-gradient(135deg, #7C3AED, #6366F1, #2563EB)", padding: "5px" }}>
               <div className="bg-white rounded-[14px] p-4">
-                <QRCodeSVG value={pwaUrl} size={220} level="H" bgColor="#FFFFFF" fgColor="#111827" className="qr-code-svg" />
+                <QRCodeSVG value={qrUrl || "https://revugo.in"} size={220} level="H" bgColor="#FFFFFF" fgColor="#111827" className="qr-code-svg" />
               </div>
-              {/* Center RevuGo icon */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-14 h-14 rounded-lg bg-white shadow-md flex items-center justify-center">
                   <img src="/logo.png" alt="R" className="w-11 h-11 object-contain" />
@@ -465,16 +504,13 @@ export default function QRPage() {
               </div>
             </div>
 
-            {/* "It's simple & quick" with purple side lines */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-16 h-px bg-[#C4B5FD]" />
               <p className="text-[12px] text-[#7C3AED] font-bold whitespace-nowrap">It&apos;s simple &amp; quick</p>
               <div className="w-16 h-px bg-[#C4B5FD]" />
             </div>
 
-            {/* 3 Steps */}
             <div className="flex items-start w-full mb-5">
-              {/* Step 1 */}
               <div className="flex-1 flex flex-col items-center text-center">
                 <div className="w-12 h-12 rounded-full bg-[#F0ECFF] border-[1.5px] border-[#E0DAFF] flex items-center justify-center mb-2">
                   <svg className="w-5 h-5 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -485,12 +521,10 @@ export default function QRPage() {
                 <p className="text-[9px] text-[#9CA3AF] leading-tight">Scan this QR code<br/>with your phone</p>
               </div>
 
-              {/* Arrow */}
               <div className="flex items-center pt-4">
                 <svg className="w-5 h-5 text-[#C4B5FD]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-4-4l4 4-4 4"/></svg>
               </div>
 
-              {/* Step 2 */}
               <div className="flex-1 flex flex-col items-center text-center">
                 <div className="w-12 h-12 rounded-full bg-[#F0ECFF] border-[1.5px] border-[#E0DAFF] flex items-center justify-center mb-2">
                   <svg className="w-5 h-5 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -501,12 +535,10 @@ export default function QRPage() {
                 <p className="text-[9px] text-[#9CA3AF] leading-tight">Answer a few simple<br/>questions</p>
               </div>
 
-              {/* Arrow */}
               <div className="flex items-center pt-4">
                 <svg className="w-5 h-5 text-[#C4B5FD]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M5 12h14m-4-4l4 4-4 4"/></svg>
               </div>
 
-              {/* Step 3 */}
               <div className="flex-1 flex flex-col items-center text-center">
                 <div className="w-12 h-12 rounded-full bg-[#F0ECFF] border-[1.5px] border-[#E0DAFF] flex items-center justify-center mb-2">
                   <svg className="w-5 h-5 text-[#7C3AED]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -519,13 +551,11 @@ export default function QRPage() {
             </div>
           </div>
 
-          {/* Bottom blue diagonal bar */}
           <div className="relative" style={{ marginTop: "-1px" }}>
             <svg viewBox="0 0 420 130" className="w-full block" preserveAspectRatio="none">
               <path d="M0,45 L420,0 L420,130 Q420,130 420,130 L0,130 Z" fill="#2563EB" />
             </svg>
             <div className="absolute inset-0 flex items-center px-6 pt-5">
-              {/* Gift icon */}
               <div className="w-12 h-12 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0 mr-4">
                 <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                   <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 110-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 100-5C13 2 12 7 12 7z" />
@@ -535,7 +565,6 @@ export default function QRPage() {
                 <p className="text-[14px] text-white font-bold leading-tight">Thank you!</p>
                 <p className="text-[10px] text-white/80 leading-snug mt-0.5">You may receive a special reward<br/>for your feedback.</p>
               </div>
-              {/* Decorative 4-pointed stars */}
               <div className="flex flex-col items-end flex-shrink-0 mr-1">
                 <svg className="w-6 h-6 text-white/25" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2 8 8 2-8 2-2 8-2-8-8-2 8-2z"/></svg>
                 <svg className="w-4 h-4 text-white/20 -mt-0.5 mr-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2 8 8 2-8 2-2 8-2-8-8-2 8-2z"/></svg>
@@ -545,12 +574,14 @@ export default function QRPage() {
         </div>
       </motion.div>
 
-      {/* PWA Target URL */}
+      {/* Target URL */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
-        <label className="block text-[9px] text-[#7C3AED] uppercase tracking-[0.2em] font-bold mb-3">Review Page URL</label>
+        <label className="block text-[9px] text-[#7C3AED] uppercase tracking-[0.2em] font-bold mb-3">
+          {platformDisplayName !== "RevuGo" ? `${platformDisplayName} Review URL` : "Review Page URL"}
+        </label>
         <div className="flex items-center gap-3">
-          <div className="flex-1 px-4 py-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#374151] text-sm font-mono truncate">{pwaUrl}</div>
+          <div className="flex-1 px-4 py-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#374151] text-sm font-mono truncate">{qrUrl}</div>
           <button onClick={handleCopy}
             className="flex items-center gap-2 px-5 py-3 rounded-lg border border-[#E5E7EB] text-[12px] text-[#6B7280] font-semibold hover:text-[#111] hover:border-[#D1D5DB] transition-colors">
             {copied ? <><Check className="w-4 h-4 text-[#10B981]" /><span className="text-[#10B981]">Copied</span></> : <><Copy className="w-4 h-4" />Copy</>}

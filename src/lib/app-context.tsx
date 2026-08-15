@@ -9,7 +9,7 @@ import {
   useRef,
   ReactNode,
 } from "react";
-import { Business, Campaign, ReviewSession, Coupon, PrivateFeedback } from "@/types";
+import { Business, Campaign, ReviewSession, Coupon, PrivateFeedback, BusinessPlatform } from "@/types";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 
@@ -19,6 +19,7 @@ interface AppState {
   sessions: ReviewSession[];
   coupons: Coupon[];
   privateFeedback: PrivateFeedback[];
+  platforms: BusinessPlatform[];
   loading: boolean;
   needsOnboarding: boolean;
 }
@@ -46,6 +47,7 @@ interface AppContextType extends AppState {
     couponPrefix: string;
     maxPayouts: number;
     expiry: string;
+    platformKey?: string;
   }) => void;
   updateCampaign: (id: string, data: {
     title: string;
@@ -134,6 +136,7 @@ function dbRowToCampaign(row: Record<string, unknown>): Campaign {
     redeemed_count: (row.redeemed_count as number) || 0,
     starts_at: (row.starts_at as string) || "",
     expires_at: (row.expires_at as string) || "",
+    platform_key: (row.platform_key as string) || "revugo",
     qr_url: (row.qr_url as string) || undefined,
     created_at: (row.created_at as string) || "",
   };
@@ -197,13 +200,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     sessions: [],
     coupons: [],
     privateFeedback: [],
+    platforms: [],
     loading: true,
     needsOnboarding: false,
   });
 
   const loadBusinessData = useCallback(
     async (businessId: string) => {
-      const [campaignsRes, sessionsRes, couponsRes, feedbackRes] =
+      const [campaignsRes, sessionsRes, couponsRes, feedbackRes, platformsRes] =
         await Promise.all([
           supabase
             .from("campaigns")
@@ -225,6 +229,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
             .select("*")
             .eq("business_id", businessId)
             .order("created_at", { ascending: false }),
+          supabase
+            .from("business_platforms")
+            .select("*")
+            .eq("business_id", businessId)
+            .order("created_at", { ascending: true }),
         ]);
 
       const campaigns = (campaignsRes.data || []).map(dbRowToCampaign);
@@ -246,6 +255,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         sessions: (sessionsRes.data || []).map(dbRowToSession),
         coupons,
         privateFeedback: (feedbackRes.data || []).map(dbRowToFeedback),
+        platforms: (platformsRes.data || []) as BusinessPlatform[],
       };
     },
     [supabase]
@@ -260,6 +270,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         sessions: [],
         coupons: [],
         privateFeedback: [],
+        platforms: [],
         loading: false,
         needsOnboarding: false,
       });
@@ -285,6 +296,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           sessions: [],
           coupons: [],
           privateFeedback: [],
+          platforms: [],
           loading: false,
           needsOnboarding: true,
         });
@@ -378,6 +390,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       couponPrefix: string;
       maxPayouts: number;
       expiry: string;
+      platformKey?: string;
     }) => {
       if (!state.business) return;
 
@@ -397,6 +410,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           expires_at: data.expiry
             ? new Date(data.expiry).toISOString()
             : new Date(Date.now() + 30 * 86400000).toISOString(),
+          platform_key: data.platformKey || "revugo",
         })
         .select("*")
         .single();
@@ -683,6 +697,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       sessions: [],
       coupons: [],
       privateFeedback: [],
+      platforms: [],
       loading: false,
       needsOnboarding: true,
     });

@@ -20,6 +20,7 @@ const pageNames: Record<string, string> = {
   "/dashboard/complaints": "Customer Concerns",
   "/dashboard/settings": "Profile Settings",
   "/dashboard/help": "Help & Support",
+  "/dashboard/platforms": "Review Platforms",
   "/dashboard/register-business": "Register Business",
 };
 
@@ -33,6 +34,7 @@ const pageDescriptions: Record<string, string> = {
   "/dashboard/complaints": "Track and resolve customer complaints",
   "/dashboard/settings": "Configure your business profile",
   "/dashboard/help": "Raise issues related to the platform",
+  "/dashboard/platforms": "Connect and manage external review platforms",
   "/dashboard/register-business": "Set up your business profile to get started",
 };
 
@@ -53,7 +55,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const { user, loading: authLoading, signOut } = useAuth();
   const [campaignModalOpen, setCampaignModalOpen] = useState(false);
-  const { sessions, addCampaign, needsOnboarding, loading: appLoading, registerBusiness, business } = useAppState();
+  const { sessions, addCampaign, needsOnboarding, loading: appLoading, registerBusiness, business, platforms } = useAppState();
 
   const openModal = useCallback(() => setCampaignModalOpen(true), []);
   const [impersonating, setImpersonating] = useState<{ businessName: string; adminUrl?: string } | null>(null);
@@ -150,6 +152,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     couponPrefix: string;
     maxPayouts: number;
     expiry: string;
+    platformKey?: string;
   }) => {
     await addCampaign(data);
     setCampaignModalOpen(false);
@@ -276,6 +279,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           open={campaignModalOpen}
           onClose={() => setCampaignModalOpen(false)}
           onDeploy={handleDeploy}
+          connectedPlatforms={platforms}
         />
       </div>
     </CampaignModalContext.Provider>

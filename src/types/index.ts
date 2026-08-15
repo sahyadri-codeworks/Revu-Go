@@ -51,6 +51,7 @@ export interface Campaign {
   redeemed_count: number;
   starts_at: string;
   expires_at: string;
+  platform_key: string;
   qr_url?: string;
   created_at: string;
 }
