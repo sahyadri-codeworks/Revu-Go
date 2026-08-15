@@ -13,6 +13,7 @@ import { ComplaintForm } from "@/components/customer/ComplaintForm";
 import { getMCQQuestions, generateIndustryReviews } from "@/lib/mcq-templates";
 import type { Business, Campaign } from "@/types";
 import { createClient } from "@/lib/supabase/client";
+import { getPlatformMeta } from "@/lib/platforms";
 import { useParams } from "next/navigation";
 import { Loader2, ExternalLink, CheckCircle, Copy, MessageSquare } from "lucide-react";
 
@@ -38,6 +39,8 @@ export default function CustomerReviewPage() {
   const [error, setError] = useState<string | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
+  const [platformReviewUrl, setPlatformReviewUrl] = useState<string | null>(null);
+  const [platformName, setPlatformName] = useState<string>("Google");
   const [industrySegment, setIndustrySegment] = useState("");
   const [subIndustry, setSubIndustry] = useState("");
   const [businessProfile, setBusinessProfile] = useState({
@@ -84,14 +87,28 @@ export default function CustomerReviewPage() {
       });
       if (availableCamps.length > 0) {
         const picked = availableCamps[Math.floor(Math.random() * availableCamps.length)];
+        const pickedPlatformKey = (picked.platform_key as string) || "revugo";
         setCampaign({
           id: picked.id as string, business_id: picked.business_id as string, title: picked.title as string,
           offer_text: picked.offer_text as string, coupon_prefix: picked.coupon_prefix as string,
           reward_type: (picked.reward_type as "own_discount" | "brand_voucher" | "surprise") || "own_discount", is_active: picked.is_active as boolean,
           max_redemptions: picked.max_redemptions as number, redeemed_count: (picked.redeemed_count as number) || 0,
           starts_at: picked.starts_at as string, expires_at: picked.expires_at as string,
-          platform_key: (picked.platform_key as string) || "revugo", created_at: picked.created_at as string,
+          platform_key: pickedPlatformKey, created_at: picked.created_at as string,
         });
+
+        const meta = getPlatformMeta(pickedPlatformKey);
+        if (meta) setPlatformName(meta.shortName);
+
+        if (pickedPlatformKey !== "revugo") {
+          const { data: plat } = await supabase
+            .from("business_platforms")
+            .select("review_url")
+            .eq("business_id", biz.id)
+            .eq("platform_key", pickedPlatformKey)
+            .single();
+          if (plat?.review_url) setPlatformReviewUrl(plat.review_url);
+        }
       }
       setLoading(false);
     }
@@ -128,6 +145,8 @@ export default function CustomerReviewPage() {
       business={business} campaign={campaign}
       industrySegment={industrySegment} subIndustry={subIndustry}
       businessProfile={businessProfile}
+      platformReviewUrl={platformReviewUrl}
+      platformName={platformName}
     />
   );
 }
@@ -139,9 +158,11 @@ interface BusinessProfile {
 
 function CustomerFlow({
   business, campaign, industrySegment, subIndustry, businessProfile,
+  platformReviewUrl, platformName,
 }: {
   business: Business; campaign: Campaign | null;
   industrySegment: string; subIndustry: string; businessProfile: BusinessProfile;
+  platformReviewUrl: string | null; platformName: string;
 }) {
   const templateQuestions = getMCQQuestions(industrySegment, subIndustry);
   const [questions, setQuestions] = useState(templateQuestions);
@@ -278,11 +299,12 @@ function CustomerFlow({
     setStep("google-redirect");
   };
 
-  // Open Google Maps and go to "Did you post?" screen
-  const openGoogleMaps = () => {
+  const reviewTargetUrl = platformReviewUrl || business.google_maps_url;
+
+  const openReviewPlatform = () => {
     try { navigator.clipboard.writeText(finalReviewText); } catch {}
-    if (business.google_maps_url) {
-      window.open(business.google_maps_url, "_blank");
+    if (reviewTargetUrl) {
+      window.open(reviewTargetUrl, "_blank");
     }
     setTimeout(() => setStep("did-you-post"), 2000);
   };
@@ -435,7 +457,7 @@ function CustomerFlow({
                   Would you like to share a review?
                 </h2>
                 <p className="text-[14px] text-[#6B7280] leading-relaxed max-w-[300px] mx-auto">
-                  If you&apos;d still like to share your experience on Google, we have some reviews ready for you. No pressure at all!
+                  If you&apos;d still like to share your experience on {platformName}, we have some reviews ready for you. No pressure at all!
                 </p>
               </motion.div>
 
@@ -470,7 +492,7 @@ function CustomerFlow({
                 </motion.div>
                 <h2 className="text-[20px] font-extrabold text-[#1A1A2E] mb-1">Review Saved!</h2>
                 <p className="text-[13px] text-[#6B7280] text-center max-w-[280px]">
-                  Your review has been recorded. Would you also like to post it on Google?
+                  Your review has been recorded. Would you also like to post it on {platformName}?
                 </p>
               </div>
 
@@ -486,7 +508,7 @@ function CustomerFlow({
               {/* Steps */}
               <div className="space-y-2.5 mb-6">
                 {[
-                  { num: "1", text: "Tap the button below to open Google" },
+                  { num: "1", text: `Tap the button below to open ${platformName}` },
                   { num: "2", text: "Long press to paste your review" },
                   { num: "3", text: "Submit and come back for your reward!" },
                 ].map((s, i) => (
@@ -502,15 +524,9 @@ function CustomerFlow({
               </div>
 
               <div className="mt-auto space-y-3">
-                <motion.button whileTap={{ scale: 0.98 }} onClick={openGoogleMaps}
+                <motion.button whileTap={{ scale: 0.98 }} onClick={openReviewPlatform}
                   className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-[15px] font-bold shadow-lg shadow-[#7C3AED]/25">
-                  <svg viewBox="0 0 24 24" className="w-5 h-5">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#fff" />
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#fff" fillOpacity="0.8" />
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#fff" fillOpacity="0.6" />
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#fff" fillOpacity="0.9" />
-                  </svg>
-                  Post on Google Maps
+                  Post on {platformName}
                   <ExternalLink className="w-4 h-4" />
                 </motion.button>
 
@@ -537,7 +553,7 @@ function CustomerFlow({
               </motion.div>
 
               <h2 className="text-[22px] font-extrabold text-[#1A1A2E] mb-2 text-center">
-                Did you post your review on Google?
+                Did you post your review on {platformName}?
               </h2>
               <p className="text-[13px] text-[#6B7280] text-center mb-8 max-w-[280px]">
                 {campaign
@@ -577,11 +593,11 @@ function CustomerFlow({
                 <motion.button whileTap={{ scale: 0.98 }}
                   onClick={() => {
                     try { navigator.clipboard.writeText(finalReviewText); } catch {}
-                    if (business.google_maps_url) window.open(business.google_maps_url, "_blank");
+                    if (reviewTargetUrl) window.open(reviewTargetUrl, "_blank");
                     setTimeout(() => setStep("did-you-post"), 2000);
                   }}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white text-[15px] font-bold shadow-lg shadow-[#7C3AED]/25 flex items-center justify-center gap-2">
-                  <ExternalLink className="w-5 h-5" /> Yes, take me to Google
+                  <ExternalLink className="w-5 h-5" /> Yes, take me to {platformName}
                 </motion.button>
 
                 <motion.button whileTap={{ scale: 0.98 }} onClick={() => setStep("private-feedback")}

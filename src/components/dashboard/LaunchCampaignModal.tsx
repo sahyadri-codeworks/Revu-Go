@@ -168,8 +168,8 @@ export function LaunchCampaignModal({ open, onClose, onDeploy, connectedPlatform
                     </div>
                     <span className="text-[11px] text-[#9CA3AF]">
                       {platformKey === "revugo"
-                        ? "QR will link to RevuGo review page"
-                        : `QR will link to ${selectedMeta.name} review page`}
+                        ? "QR links to RevuGo review page"
+                        : `QR links to RevuGo — after review, customer is redirected to ${selectedMeta.name}`}
                     </span>
                   </div>
                 </div>

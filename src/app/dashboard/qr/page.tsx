@@ -318,26 +318,21 @@ export default function QRPage() {
   }, [campaigns, filterText, selectedCampaignId]);
 
   const getQrUrl = useCallback(() => {
-    if (!business || !selectedCampaign) return "";
-    const platformKey = selectedCampaign.platform_key || "revugo";
-    if (platformKey === "revugo") {
-      return `${origin}/r/${business.slug}`;
-    }
-    const platform = platforms.find((p) => p.platform_key === platformKey);
-    if (platform?.review_url) {
-      return platform.review_url;
-    }
+    if (!business) return "";
     return `${origin}/r/${business.slug}`;
-  }, [business, selectedCampaign, platforms, origin]);
+  }, [business, origin]);
 
   const qrUrl = getQrUrl();
 
   const platformMeta = selectedCampaign ? getPlatformMeta(selectedCampaign.platform_key || "revugo") : null;
   const platformDisplayName = platformMeta?.shortName || "RevuGo";
 
+  const platformReviewUrl = selectedCampaign && selectedCampaign.platform_key !== "revugo"
+    ? platforms.find((p) => p.platform_key === selectedCampaign.platform_key)?.review_url
+    : null;
   const isMissingPlatformUrl = selectedCampaign
     && selectedCampaign.platform_key !== "revugo"
-    && !platforms.find((p) => p.platform_key === selectedCampaign.platform_key)?.review_url;
+    && !platformReviewUrl;
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(qrUrl).then(() => {
@@ -460,7 +455,7 @@ export default function QRPage() {
 
       {isMissingPlatformUrl && (
         <div className="mb-4 px-4 py-3 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] text-[12px] text-[#9A3412]">
-          <strong>Warning:</strong> The {platformDisplayName} platform has no review URL configured. The QR code currently links to your RevuGo page instead. Add the URL in{" "}
+          <strong>Warning:</strong> The {platformDisplayName} platform has no review URL configured. Customers will complete the review on RevuGo but won&apos;t be redirected to {platformDisplayName} to post it. Add the URL in{" "}
           <a href="/dashboard/platforms" className="underline font-medium">Review Platforms</a>.
         </div>
       )}
@@ -590,7 +585,7 @@ export default function QRPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
         className="bg-white border border-[#E5E7EB] rounded-xl p-5 mb-6">
         <label className="block text-[9px] text-[#7C3AED] uppercase tracking-[0.2em] font-bold mb-3">
-          {platformDisplayName !== "RevuGo" ? `${platformDisplayName} Review URL` : "Review Page URL"}
+          RevuGo Review Page URL
         </label>
         <div className="flex items-center gap-3">
           <div className="flex-1 px-4 py-3 rounded-lg bg-[#F9FAFB] border border-[#E5E7EB] text-[#374151] text-sm font-mono truncate">{qrUrl}</div>
