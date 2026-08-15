@@ -75,9 +75,13 @@ export default function CustomerReviewPage() {
       });
 
       const camps = (result.campaigns || []) as Record<string, unknown>[];
-      const availableCamps = camps.filter(
-        (c) => !c.max_redemptions || ((c.redeemed_count as number) || 0) < (c.max_redemptions as number)
-      );
+      const now = new Date();
+      const availableCamps = camps.filter((c) => {
+        if (c.is_active === false) return false;
+        if (c.expires_at && new Date(c.expires_at as string) < now) return false;
+        if (c.max_redemptions && ((c.redeemed_count as number) || 0) >= (c.max_redemptions as number)) return false;
+        return true;
+      });
       if (availableCamps.length > 0) {
         const picked = availableCamps[Math.floor(Math.random() * availableCamps.length)];
         setCampaign({

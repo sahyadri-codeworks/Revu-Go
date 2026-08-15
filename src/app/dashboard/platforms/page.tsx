@@ -22,22 +22,25 @@ import { AddPlatformModal } from "@/components/dashboard/AddPlatformModal";
 import type { BusinessPlatform } from "@/types";
 
 export default function PlatformsPage() {
-  const { business, sessions } = useAppState();
-  const [platforms, setPlatforms] = useState<BusinessPlatform[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { business, sessions, platforms: contextPlatforms, loading: appLoading, refreshPlatforms } = useAppState();
+  const [localPlatforms, setLocalPlatforms] = useState<BusinessPlatform[]>([]);
+  const [hasFetched, setHasFetched] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   const loadPlatforms = useCallback(async () => {
     try {
       const res = await fetch("/api/platforms");
       const data = await res.json();
-      if (res.ok) setPlatforms(data.platforms || []);
+      if (res.ok) setLocalPlatforms(data.platforms || []);
     } catch {} finally {
-      setLoading(false);
+      setHasFetched(true);
     }
   }, []);
 
   useEffect(() => { loadPlatforms(); }, [loadPlatforms]);
+
+  const platforms = hasFetched ? localPlatforms : contextPlatforms;
+  const loading = !hasFetched && appLoading;
 
   const revugoPlatform = platforms.find((p) => p.platform_key === "revugo");
   const externalPlatforms = platforms.filter((p) => p.platform_key !== "revugo");
@@ -289,7 +292,8 @@ export default function PlatformsPage() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onAdded={(p) => {
-          setPlatforms((prev) => [...prev, p]);
+          setLocalPlatforms((prev) => [...prev, p]);
+          refreshPlatforms();
           setModalOpen(false);
         }}
         connectedKeys={platforms.map((p) => p.platform_key)}

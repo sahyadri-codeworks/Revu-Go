@@ -70,16 +70,18 @@ export async function POST(req: NextRequest) {
   }
 
   let qrCodeId = generateQRCodeId();
-  let attempts = 0;
-  while (attempts < 5) {
+  let foundUnique = false;
+  for (let attempts = 0; attempts < 10; attempts++) {
     const { data: clash } = await supabase
       .from("business_platforms")
       .select("id")
       .eq("qr_code_id", qrCodeId)
       .single();
-    if (!clash) break;
+    if (!clash) { foundUnique = true; break; }
     qrCodeId = generateQRCodeId();
-    attempts++;
+  }
+  if (!foundUnique) {
+    return NextResponse.json({ error: "Could not generate unique QR code. Please try again." }, { status: 500 });
   }
 
   const { data, error } = await supabase
@@ -90,8 +92,8 @@ export async function POST(req: NextRequest) {
       display_name: sanitizedName,
       review_url: sanitizedUrl,
       qr_code_id: qrCodeId,
-      is_connected: true,
-      qr_enabled: true,
+      is_connected: !!sanitizedUrl,
+      qr_enabled: !!sanitizedUrl,
     })
     .select("*")
     .single();

@@ -60,16 +60,18 @@ export async function PATCH(
 
   if (body.regenerate_qr) {
     let newQrId = generateQRCodeId();
-    let attempts = 0;
-    while (attempts < 5) {
+    let foundUnique = false;
+    for (let attempts = 0; attempts < 10; attempts++) {
       const { data: clash } = await supabase
         .from("business_platforms")
         .select("id")
         .eq("qr_code_id", newQrId)
         .single();
-      if (!clash) break;
+      if (!clash) { foundUnique = true; break; }
       newQrId = generateQRCodeId();
-      attempts++;
+    }
+    if (!foundUnique) {
+      return NextResponse.json({ error: "Could not generate unique QR code. Please try again." }, { status: 500 });
     }
     updates.qr_code_id = newQrId;
   }

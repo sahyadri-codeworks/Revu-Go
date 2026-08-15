@@ -62,6 +62,7 @@ interface AppContextType extends AppState {
   updateBusiness: (data: Partial<Business>) => void;
   toggleFeedbackRead: (id: string) => void;
   redeemCoupon: (id: string) => Promise<boolean>;
+  refreshPlatforms: () => Promise<void>;
   purgeAllData: () => void;
 }
 
@@ -657,6 +658,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [state.coupons, supabase]
   );
 
+  const refreshPlatforms = useCallback(async () => {
+    if (!state.business) return;
+    const { data } = await supabase
+      .from("business_platforms")
+      .select("*")
+      .eq("business_id", state.business.id)
+      .order("created_at", { ascending: true });
+    setState((prev) => ({ ...prev, platforms: (data || []) as BusinessPlatform[] }));
+  }, [state.business, supabase]);
+
   const purgeAllData = useCallback(async () => {
     if (!user || !state.business) return;
 
@@ -715,6 +726,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateBusiness,
         toggleFeedbackRead,
         redeemCoupon,
+        refreshPlatforms,
         purgeAllData,
       }}
     >

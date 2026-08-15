@@ -311,10 +311,11 @@ export default function QRPage() {
     if (!filterText.trim()) return campaigns;
     const lower = filterText.toLowerCase();
     return campaigns.filter((c) =>
+      c.id === selectedCampaignId ||
       c.title.toLowerCase().includes(lower) ||
       c.platform_key.toLowerCase().includes(lower)
     );
-  }, [campaigns, filterText]);
+  }, [campaigns, filterText, selectedCampaignId]);
 
   const getQrUrl = useCallback(() => {
     if (!business || !selectedCampaign) return "";
@@ -333,6 +334,10 @@ export default function QRPage() {
 
   const platformMeta = selectedCampaign ? getPlatformMeta(selectedCampaign.platform_key || "revugo") : null;
   const platformDisplayName = platformMeta?.shortName || "RevuGo";
+
+  const isMissingPlatformUrl = selectedCampaign
+    && selectedCampaign.platform_key !== "revugo"
+    && !platforms.find((p) => p.platform_key === selectedCampaign.platform_key)?.review_url;
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(qrUrl).then(() => {
@@ -450,6 +455,13 @@ export default function QRPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {isMissingPlatformUrl && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-[#FFF7ED] border border-[#FDBA74] text-[12px] text-[#9A3412]">
+          <strong>Warning:</strong> The {platformDisplayName} platform has no review URL configured. The QR code currently links to your RevuGo page instead. Add the URL in{" "}
+          <a href="/dashboard/platforms" className="underline font-medium">Review Platforms</a>.
         </div>
       )}
 

@@ -85,11 +85,13 @@ export default function AnalyticsPage() {
   const prevConversion = prevFiltered.length > 0 ? (prevVerified / prevFiltered.length) * 100 : 0;
   const convDelta = prevFiltered.length > 0 ? conversionRate - prevConversion : 0;
 
-  // Coupons in range
+  // Coupons in range (filtered by campaign + time)
   const threshold = getDateThreshold(timeRange);
-  const filteredCoupons = threshold
-    ? coupons.filter((c) => new Date(c.issued_at) >= threshold)
-    : coupons;
+  const filteredCoupons = coupons.filter((c) => {
+    if (selectedCampaignId !== "all" && c.campaign_id !== selectedCampaignId) return false;
+    if (threshold && new Date(c.issued_at) < threshold) return false;
+    return true;
+  });
 
   // Sentiment from star ratings
   const positive = filtered.filter((s) => s.star_rating >= 4).length;

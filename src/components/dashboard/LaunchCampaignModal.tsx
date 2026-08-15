@@ -61,7 +61,7 @@ export function LaunchCampaignModal({ open, onClose, onDeploy, connectedPlatform
   const availablePlatforms = [
     { key: "revugo", name: "RevuGo (Our Platform)", color: "#7C3AED", icon: "R" },
     ...connectedPlatforms
-      .filter((p) => p.is_connected)
+      .filter((p) => p.is_connected && p.platform_key !== "revugo")
       .map((p) => {
         const meta = getPlatformMeta(p.platform_key);
         return {

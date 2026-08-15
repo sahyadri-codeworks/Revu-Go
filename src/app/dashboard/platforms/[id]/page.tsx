@@ -616,6 +616,11 @@ export default function PlatformDetailPage({ params }: { params: Promise<{ id: s
           <h2 className="text-[14px] font-semibold text-[#111] mb-4">Platform Settings</h2>
 
           <div className="space-y-4 max-w-lg">
+            {isRevugo && (
+              <div className="px-4 py-3 rounded-xl bg-[#F3E8FF] border border-[#DDD6FE] text-[12px] text-[#6D28D9]">
+                RevuGo platform stats are calculated automatically from your review sessions. No manual configuration needed.
+              </div>
+            )}
             {!isRevugo && (
               <>
                 <div>
@@ -661,14 +666,16 @@ export default function PlatformDetailPage({ params }: { params: Promise<{ id: s
             )}
 
             <div className="flex items-center gap-3 pt-2">
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#7C3AED] text-white text-[13px] font-bold hover:bg-[#6D28D9] disabled:opacity-50 transition-colors"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                Save Changes
-              </button>
+              {!isRevugo && (
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#7C3AED] text-white text-[13px] font-bold hover:bg-[#6D28D9] disabled:opacity-50 transition-colors"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Save Changes
+                </button>
+              )}
               <button
                 onClick={handleToggleConnection}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-[13px] font-medium transition-colors ${
