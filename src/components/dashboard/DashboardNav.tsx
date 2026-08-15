@@ -13,6 +13,7 @@ import {
   TicketCheck,
   LogOut,
   Building2,
+  Globe2,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useAppState } from "@/lib/app-context";
@@ -31,6 +32,7 @@ export function DashboardNav() {
     { href: "/dashboard/reviews", label: "Review Inbox", icon: MessageSquare },
     { href: "/dashboard/complaints", label: "Customer Concerns", icon: AlertTriangle },
     { href: "/dashboard/coupons", label: "Verify Coupons", icon: TicketCheck },
+    { href: "/dashboard/platforms", label: "Review Platforms", icon: Globe2 },
     { href: "/dashboard/qr", label: "QR Flyer Manager", icon: QrCode },
     { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   ];
@@ -102,7 +104,7 @@ export function DashboardNav() {
         {/* Nav */}
         <nav className="flex-1 px-3 space-y-0.5">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
             const isRegister = (item as { onlyOnboarding?: boolean }).onlyOnboarding;
             return (
               <Link
@@ -225,7 +227,7 @@ export function DashboardNav() {
             </div>
             <nav className="space-y-0.5">
               {navItems.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
                 const isRegister = (item as { onlyOnboarding?: boolean }).onlyOnboarding;
                 return (
                   <Link

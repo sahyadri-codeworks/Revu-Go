@@ -115,6 +115,28 @@ export interface Complaint {
   updated_at: string;
 }
 
+export interface BusinessPlatform {
+  id: string;
+  business_id: string;
+  platform_key: string;
+  display_name: string;
+  review_url: string;
+  is_connected: boolean;
+  qr_code_id: string;
+  qr_enabled: boolean;
+  avg_rating: number | null;
+  total_reviews: number;
+  total_qr_scans: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlatformQRScan {
+  id: string;
+  business_platform_id: string;
+  scanned_at: string;
+}
+
 export interface ScrapeJob {
   id: string;
   session_id: string;

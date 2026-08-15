@@ -659,6 +659,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await supabase.from("scrape_jobs").delete().in("session_id", sessionIds);
     }
     await supabase.from("coupons").delete().eq("business_id", businessId);
+    const bpIds = (
+      await supabase
+        .from("business_platforms")
+        .select("id")
+        .eq("business_id", businessId)
+    ).data?.map((r) => r.id) || [];
+    if (bpIds.length > 0) {
+      await supabase.from("platform_qr_scans").delete().in("business_platform_id", bpIds);
+    }
+    await supabase.from("business_platforms").delete().eq("business_id", businessId);
     await supabase.from("complaints").delete().eq("business_id", businessId);
     await supabase.from("notifications").delete().eq("recipient_id", businessId).eq("recipient_type", "business");
     await supabase.from("private_feedback").delete().eq("business_id", businessId);
