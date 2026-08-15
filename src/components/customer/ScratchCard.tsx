@@ -387,12 +387,17 @@ export function ScratchCard({ couponCode, rewardText, businessName, logoUrl, onR
               >
                 <div className="flex-1">
                   <div className="inline-flex items-center gap-2 px-3.5 py-2 rounded-lg border border-dashed border-[#22C55E]/30 bg-[#F0FDF4]">
-                    <span className="text-[15px] font-mono font-bold text-[#166534] tracking-wide">{couponCode}</span>
+                    {couponCode ? (
+                      <span className="text-[15px] font-mono font-bold text-[#166534] tracking-wide">{couponCode}</span>
+                    ) : (
+                      <span className="text-[13px] text-[#6B7280] animate-pulse">Loading...</span>
+                    )}
                   </div>
                 </div>
                 <button
-                  onClick={() => navigator.clipboard.writeText(couponCode)}
-                  className="w-9 h-9 rounded-lg bg-[#F3F4F6] hover:bg-[#E5E7EB] flex items-center justify-center transition-colors active:scale-95"
+                  onClick={() => couponCode && couponCode !== "ERROR" && navigator.clipboard.writeText(couponCode)}
+                  disabled={!couponCode || couponCode === "ERROR"}
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors active:scale-95 ${!couponCode || couponCode === "ERROR" ? "bg-[#F3F4F6] opacity-50 cursor-not-allowed" : "bg-[#F3F4F6] hover:bg-[#E5E7EB]"}`}
                 >
                   <svg className="w-4 h-4 text-[#6B7280]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />

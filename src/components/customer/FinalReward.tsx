@@ -139,8 +139,11 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
             Your Coupon Code
           </p>
           <p className="text-[32px] font-extrabold tracking-[0.12em] font-mono relative">
-            {couponCode}
+            {couponCode === "ERROR" ? "—" : couponCode || "..."}
           </p>
+          {couponCode === "ERROR" && (
+            <p className="text-[11px] opacity-70 mt-1">Could not generate coupon. Please contact the business.</p>
+          )}
         </div>
         {/* Zigzag divider */}
         <div className="relative h-3 bg-white">
@@ -173,10 +176,13 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
         <motion.button
           whileTap={{ scale: 0.98 }}
           onClick={handleCopy}
+          disabled={!couponCode || couponCode === "ERROR"}
           className={`w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-[15px] font-bold transition-all shadow-lg ${
-            copied
-              ? "bg-[#D4AF37] text-white shadow-[#D4AF37]/25"
-              : "bg-gradient-to-r from-[#166534] to-[#15803D] text-white shadow-[#166534]/25"
+            !couponCode || couponCode === "ERROR"
+              ? "bg-gray-300 text-gray-500 shadow-none cursor-not-allowed"
+              : copied
+                ? "bg-[#D4AF37] text-white shadow-[#D4AF37]/25"
+                : "bg-gradient-to-r from-[#166534] to-[#15803D] text-white shadow-[#166534]/25"
           }`}
         >
           {copied ? (

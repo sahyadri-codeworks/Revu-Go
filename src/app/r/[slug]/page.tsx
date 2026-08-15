@@ -154,10 +154,7 @@ function CustomerFlow({
   const [finalReviewText, setFinalReviewText] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isNegativeFeedback, setIsNegativeFeedback] = useState(false);
-  const [couponCode, setCouponCode] = useState(() => {
-    const suffix = Math.random().toString(36).slice(2, 7).toUpperCase();
-    return campaign ? `${campaign.coupon_prefix}-${suffix}` : `RF-${suffix}`;
-  });
+  const [couponCode, setCouponCode] = useState("");
 
   const canGoBack = ["mcq", "reviews"].includes(step);
 
@@ -323,8 +320,14 @@ function CustomerFlow({
           }),
         });
         const data = await res.json();
-        if (data.coupon_code) setCouponCode(data.coupon_code);
-      } catch {}
+        if (data.coupon_code) {
+          setCouponCode(data.coupon_code);
+        } else {
+          setCouponCode("ERROR");
+        }
+      } catch {
+        setCouponCode("ERROR");
+      }
     }
     setTimeout(() => setStep("final"), 1200);
   }, [campaign, sessionId, business.id]);
