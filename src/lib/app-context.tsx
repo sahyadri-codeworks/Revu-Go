@@ -659,6 +659,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await supabase.from("scrape_jobs").delete().in("session_id", sessionIds);
     }
     await supabase.from("coupons").delete().eq("business_id", businessId);
+    await supabase.from("complaints").delete().eq("business_id", businessId);
+    await supabase.from("notifications").delete().eq("recipient_id", businessId).eq("recipient_type", "business");
     await supabase.from("private_feedback").delete().eq("business_id", businessId);
     await supabase.from("review_sessions").delete().eq("business_id", businessId);
     await supabase.from("campaigns").delete().eq("business_id", businessId);

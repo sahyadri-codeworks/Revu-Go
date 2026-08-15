@@ -111,34 +111,43 @@ export async function POST(req: NextRequest) {
 
     if (!business) return NextResponse.json({ error: "No business found" }, { status: 400 });
 
+    const subject = typeof body.subject === "string" ? body.subject.slice(0, 200) : "";
+    const message = typeof body.message === "string" ? body.message.slice(0, 5000) : "";
+    if (!subject || !message) {
+      return NextResponse.json({ error: "Subject and message are required" }, { status: 400 });
+    }
+
+    const validPriorities = ["low", "medium", "high", "urgent"];
+    const priority = validPriorities.includes(body.priority) ? body.priority : "medium";
+
     const { data: ticket, error } = await admin
       .from("support_tickets")
       .insert({
         business_id: business.id,
-        subject: body.subject,
-        priority: body.priority || "medium",
+        subject,
+        priority,
       })
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "Failed to create ticket" }, { status: 500 });
 
     await admin.from("ticket_messages").insert({
       ticket_id: ticket.id,
       sender_type: "business",
       sender_email: user.email,
-      message: body.message,
+      message,
     });
 
-    const { data: admins } = await admin.from("super_admins").select("user_id");
+    const { data: admins } = await admin.from("super_admins").select("id");
     if (admins && admins.length > 0) {
       await admin.from("notifications").insert(
-        admins.map((a: { user_id: string }) => ({
-          recipient_id: a.user_id,
+        admins.map((a: { id: string }) => ({
+          recipient_id: a.id,
           recipient_type: "admin",
           type: "ticket",
-          title: `New support ticket: ${body.subject}`,
-          message: (body.message as string).slice(0, 200),
+          title: `New support ticket: ${subject}`,
+          message: message.slice(0, 200),
           reference_id: ticket.id,
           reference_type: "support_ticket",
         }))
@@ -168,11 +177,14 @@ export async function POST(req: NextRequest) {
 
     if (!ticket) return NextResponse.json({ error: "Ticket not found" }, { status: 404 });
 
+    const replyMessage = typeof body.message === "string" ? body.message.slice(0, 5000) : "";
+    if (!replyMessage) return NextResponse.json({ error: "Message is required" }, { status: 400 });
+
     await admin.from("ticket_messages").insert({
       ticket_id: body.ticketId,
       sender_type: "business",
       sender_email: user.email,
-      message: body.message,
+      message: replyMessage,
     });
 
     await admin
@@ -188,11 +200,14 @@ export async function POST(req: NextRequest) {
     const isAdmin = user.email ? await verifySuperAdmin(user.email) : false;
     if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
+    const adminMessage = typeof body.message === "string" ? body.message.slice(0, 5000) : "";
+    if (!adminMessage) return NextResponse.json({ error: "Message is required" }, { status: 400 });
+
     await admin.from("ticket_messages").insert({
       ticket_id: body.ticketId,
       sender_type: "admin",
       sender_email: user.email,
-      message: body.message,
+      message: adminMessage,
       is_internal_note: body.isInternalNote || false,
     });
 
@@ -213,7 +228,7 @@ export async function POST(req: NextRequest) {
           recipient_type: "business",
           type: "ticket_reply",
           title: `Reply on: ${ticket.subject}`,
-          message: (body.message as string).slice(0, 200),
+          message: adminMessage.slice(0, 200),
           reference_id: body.ticketId,
           reference_type: "support_ticket",
         });
@@ -226,6 +241,15 @@ export async function POST(req: NextRequest) {
   if (action === "update-ticket") {
     const isAdmin = user.email ? await verifySuperAdmin(user.email) : false;
     if (!isAdmin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+    const validStatuses = ["open", "in_progress", "resolved", "closed"];
+    const validPriorities = ["low", "medium", "high", "urgent"];
+    if (body.status && !validStatuses.includes(body.status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    if (body.priority && !validPriorities.includes(body.priority)) {
+      return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
+    }
 
     const updates: Record<string, string> = { updated_at: new Date().toISOString() };
     if (body.status) updates.status = body.status;

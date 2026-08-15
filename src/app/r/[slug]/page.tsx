@@ -328,8 +328,11 @@ function CustomerFlow({
       } catch {
         setCouponCode("ERROR");
       }
+    } else if (campaign && !sessionId) {
+      setCouponCode("ERROR");
     }
-    setTimeout(() => setStep("final"), 1200);
+    await new Promise((r) => setTimeout(r, 1200));
+    setStep("final");
   }, [campaign, sessionId, business.id]);
 
   const offerText = campaign?.offer_text || "Share your experience with us!";

@@ -1,6 +1,13 @@
+import { rateLimit } from "@/lib/rate-limit";
+
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!rateLimit(`sentiment:${ip}`, 30, 60_000)) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const { starRating, mcqAnswers, mcqNotes } = await request.json();
 
   // Quick check: below 2 stars is always negative

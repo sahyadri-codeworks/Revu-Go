@@ -7,13 +7,14 @@ import { useState } from "react";
 interface PrivateFeedbackFormProps {
   starRating: number;
   businessName: string;
-  onSubmit: (feedback: string) => void;
+  onSubmit: (feedback: string) => void | Promise<void>;
   onSkip?: () => void;
 }
 
 export function PrivateFeedbackForm({ starRating, businessName, onSubmit, onSkip }: PrivateFeedbackFormProps) {
   const [feedback, setFeedback] = useState("");
   const [submitted, setSubmitted] = useState<"sent" | "skipped" | false>(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (submitted) {
     return (
@@ -117,15 +118,23 @@ export function PrivateFeedbackForm({ starRating, businessName, onSubmit, onSkip
       <div className="pt-4">
         <motion.button
           whileTap={{ scale: 0.98 }}
-          onClick={() => {
-            onSubmit(feedback);
+          onClick={async () => {
+            setSubmitting(true);
+            try {
+              await onSubmit(feedback);
+            } catch {}
+            setSubmitting(false);
             setSubmitted("sent");
           }}
-          disabled={!feedback.trim()}
+          disabled={!feedback.trim() || submitting}
           className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-gradient-to-r from-[#166534] to-[#15803D] text-white text-[15px] font-bold disabled:opacity-20 disabled:cursor-not-allowed transition-all shadow-lg shadow-[#166534]/25"
         >
-          <Send className="w-4.5 h-4.5" />
-          Send Private Feedback
+          {submitting ? (
+            <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+          ) : (
+            <Send className="w-4.5 h-4.5" />
+          )}
+          {submitting ? "Sending..." : "Send Private Feedback"}
         </motion.button>
         <button
           onClick={() => {

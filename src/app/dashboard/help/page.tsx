@@ -81,12 +81,19 @@ export default function HelpPage() {
   const [priority, setPriority] = useState<Priority>("medium");
   const [creating, setCreating] = useState(false);
 
+  const [fetchError, setFetchError] = useState(false);
+  const [actionError, setActionError] = useState("");
+
   const fetchTickets = useCallback(async () => {
     try {
+      setFetchError(false);
       const res = await fetch("/api/support-tickets?action=my-tickets");
+      if (!res.ok) throw new Error();
       const data = await res.json();
       setTickets(data.tickets || []);
-    } catch {} finally {
+    } catch {
+      setFetchError(true);
+    } finally {
       setLoading(false);
     }
   }, []);
@@ -96,18 +103,22 @@ export default function HelpPage() {
   const handleCreate = async () => {
     if (!subject.trim() || !message.trim()) return;
     setCreating(true);
+    setActionError("");
     try {
-      await fetch("/api/support-tickets", {
+      const res = await fetch("/api/support-tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "create", subject, message, priority }),
       });
+      if (!res.ok) throw new Error();
       setSubject("");
       setMessage("");
       setPriority("medium");
       setShowNewForm(false);
       await fetchTickets();
-    } catch {} finally {
+    } catch {
+      setActionError("Failed to create ticket. Please try again.");
+    } finally {
       setCreating(false);
     }
   };
@@ -116,15 +127,19 @@ export default function HelpPage() {
     const text = replyTexts[ticketId] || "";
     if (!text.trim()) return;
     setSending(true);
+    setActionError("");
     try {
-      await fetch("/api/support-tickets", {
+      const res = await fetch("/api/support-tickets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "reply", ticketId, message: text }),
       });
+      if (!res.ok) throw new Error();
       setReplyTexts((prev) => ({ ...prev, [ticketId]: "" }));
       await fetchTickets();
-    } catch {} finally {
+    } catch {
+      setActionError("Failed to send reply. Please try again.");
+    } finally {
       setSending(false);
     }
   };
@@ -228,8 +243,12 @@ export default function HelpPage() {
 
                 <div className="h-px bg-[#F3F4F6]" />
 
-                <div className="px-6 py-4 flex items-center gap-3">
-                  <button onClick={() => setShowNewForm(false)}
+                <div className="px-6 py-4 space-y-3">
+                  {actionError && (
+                    <p className="text-[12px] text-[#EF4444] text-center">{actionError}</p>
+                  )}
+                  <div className="flex items-center gap-3">
+                  <button onClick={() => { setShowNewForm(false); setActionError(""); }}
                     className="flex-1 py-3 rounded-xl bg-[#F3F4F6] border border-[#E5E7EB] text-[11px] text-[#6B7280] uppercase tracking-[0.12em] font-medium hover:text-[#111] hover:bg-[#E5E7EB] transition-all">
                     Cancel
                   </button>
@@ -238,6 +257,7 @@ export default function HelpPage() {
                     {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                     Submit Ticket
                   </button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -245,10 +265,25 @@ export default function HelpPage() {
         )}
       </AnimatePresence>
 
+      {/* Error banner */}
+      {actionError && !showNewForm && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-[#FEF2F2] border border-[#FECACA] text-[13px] text-[#DC2626]">
+          {actionError}
+        </div>
+      )}
+
       {/* Loading */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-6 h-6 text-[#7C3AED] animate-spin" />
+        </div>
+      ) : fetchError ? (
+        <div className="glass-card rounded-2xl p-16 text-center">
+          <p className="text-[#EF4444] text-sm mb-4">Failed to load tickets. Please try again.</p>
+          <button onClick={fetchTickets}
+            className="px-6 py-3 bg-gradient-to-r from-[#7C3AED] to-[#6D28D9] text-white rounded-xl text-[12px] uppercase tracking-wider font-bold">
+            Retry
+          </button>
         </div>
       ) : tickets.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}

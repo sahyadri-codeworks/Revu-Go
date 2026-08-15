@@ -6,7 +6,7 @@ import { useAppState } from "@/lib/app-context";
 import { useCampaignModal } from "../layout";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Campaign } from "@/types";
 
 const toastStyle = {
@@ -212,19 +212,15 @@ function EditCampaignModal({
   const [maxPayouts, setMaxPayouts] = useState("");
   const [expiry, setExpiry] = useState("");
 
-  // Sync form when campaign changes
-  const [lastId, setLastId] = useState<string | null>(null);
-  if (campaign && campaign.id !== lastId) {
-    setTitle(campaign.title);
-    setOfferText(campaign.offer_text);
-    setCouponPrefix(campaign.coupon_prefix);
-    setMaxPayouts(campaign.max_redemptions.toString());
-    setExpiry(campaign.expires_at.split("T")[0]);
-    setLastId(campaign.id);
-  }
-  if (!campaign && lastId) {
-    setLastId(null);
-  }
+  useEffect(() => {
+    if (campaign) {
+      setTitle(campaign.title);
+      setOfferText(campaign.offer_text);
+      setCouponPrefix(campaign.coupon_prefix);
+      setMaxPayouts(campaign.max_redemptions.toString());
+      setExpiry(campaign.expires_at.split("T")[0]);
+    }
+  }, [campaign]);
 
   const canSave = title.trim() && offerText.trim();
 

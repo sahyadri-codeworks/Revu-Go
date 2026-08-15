@@ -17,6 +17,7 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
   const [email, setEmail] = useState("");
   const [emailSent, setEmailSent] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState(false);
   const [showEmailInput, setShowEmailInput] = useState(false);
 
   const handleCopy = () => {
@@ -215,11 +216,14 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
           </div>
         ) : (
           <div className="w-full space-y-2">
+            {emailError && (
+              <p className="text-[12px] text-[#EF4444] text-center">Email service is not available. Please copy the coupon code instead.</p>
+            )}
             <div className="flex gap-2">
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(false); }}
                 placeholder="Enter your email"
                 className="flex-1 px-4 py-3.5 rounded-xl bg-white border-2 border-[#E8E2D6] text-[#1A1A2E] text-[14px] placeholder:text-[#C4BBA8] focus:outline-none focus:border-[#166534] transition-colors"
               />
@@ -227,6 +231,7 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
                 onClick={async () => {
                   if (!email || !email.includes("@")) return;
                   setEmailSending(true);
+                  setEmailError(false);
                   try {
                     const res = await fetch("/api/email/send-coupon", {
                       method: "POST",
@@ -241,9 +246,11 @@ export function FinalReward({ couponCode, rewardText, businessName, expiryDate, 
                     });
                     if (res.ok) {
                       setEmailSent(true);
+                    } else {
+                      setEmailError(true);
                     }
                   } catch {
-                    // silently fail
+                    setEmailError(true);
                   } finally {
                     setEmailSending(false);
                   }

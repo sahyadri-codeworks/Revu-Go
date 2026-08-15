@@ -21,23 +21,46 @@ export default function SettingsPage() {
   const { signOut } = useAuth();
   const router = useRouter();
 
-  const [firstName, setFirstName] = useState(business?.owner_first_name || "");
-  const [lastName, setLastName] = useState(business?.owner_last_name || "");
-  const [businessName, setBusinessName] = useState(business?.name || "");
-  const [industry, setIndustry] = useState(business?.industry_segment || "");
-  const [subIndustry, setSubIndustry] = useState(business?.sub_industry || "");
-  const [area, setArea] = useState(business?.location_area || "");
-  const [city, setCity] = useState(business?.location_city || "");
-  const [logoUrl, setLogoUrl] = useState(business?.logo_url || "");
-  const [googleMapsUrl, setGoogleMapsUrl] = useState(business?.google_maps_url || "");
-  const [website, setWebsite] = useState(business?.website || "");
-  const [instagram, setInstagram] = useState(business?.instagram_url || "");
-  const [businessDescription, setBusinessDescription] = useState(business?.business_description || "");
-  const [servicesOffered, setServicesOffered] = useState(business?.services_offered || "");
-  const [staffInfo, setStaffInfo] = useState(business?.staff_info || "");
-  const [businessHighlights, setBusinessHighlights] = useState(business?.business_highlights || "");
-  const [phone, setPhone] = useState(business?.phone || "");
-  const [email, setEmail] = useState(business?.email || "");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [industry, setIndustry] = useState("");
+  const [subIndustry, setSubIndustry] = useState("");
+  const [area, setArea] = useState("");
+  const [city, setCity] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("");
+  const [website, setWebsite] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [businessDescription, setBusinessDescription] = useState("");
+  const [servicesOffered, setServicesOffered] = useState("");
+  const [staffInfo, setStaffInfo] = useState("");
+  const [businessHighlights, setBusinessHighlights] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [formLoaded, setFormLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!business || formLoaded) return;
+    setFirstName(business.owner_first_name || "");
+    setLastName(business.owner_last_name || "");
+    setBusinessName(business.name || "");
+    setIndustry(business.industry_segment || "");
+    setSubIndustry(business.sub_industry || "");
+    setArea(business.location_area || "");
+    setCity(business.location_city || "");
+    setLogoUrl(business.logo_url || "");
+    setGoogleMapsUrl(business.google_maps_url || "");
+    setWebsite(business.website || "");
+    setInstagram(business.instagram_url || "");
+    setBusinessDescription(business.business_description || "");
+    setServicesOffered(business.services_offered || "");
+    setStaffInfo(business.staff_info || "");
+    setBusinessHighlights(business.business_highlights || "");
+    setPhone(business.phone || "");
+    setEmail(business.email || "");
+    setFormLoaded(true);
+  }, [business, formLoaded]);
   const [showPurgeConfirm, setShowPurgeConfirm] = useState(false);
   const [purging, setPurging] = useState(false);
   const [notifSound, setNotifSound] = useState(true);
@@ -79,27 +102,31 @@ export default function SettingsPage() {
     if (!error) toast.success("Notification preferences saved", { style: toastStyle });
   };
 
-  const handleCommit = () => {
-    updateBusiness({
-      name: businessName,
-      logo_url: logoUrl,
-      location_area: area,
-      location_city: city,
-      google_maps_url: googleMapsUrl,
-      website,
-      instagram_url: instagram,
-      industry_segment: industry,
-      sub_industry: subIndustry,
-      business_description: businessDescription,
-      services_offered: servicesOffered,
-      staff_info: staffInfo,
-      business_highlights: businessHighlights,
-      phone,
-      email,
-      owner_first_name: firstName,
-      owner_last_name: lastName,
-    });
-    toast.success("Profile changes saved", { style: toastStyle });
+  const handleCommit = async () => {
+    try {
+      await updateBusiness({
+        name: businessName,
+        logo_url: logoUrl,
+        location_area: area,
+        location_city: city,
+        google_maps_url: googleMapsUrl,
+        website,
+        instagram_url: instagram,
+        industry_segment: industry,
+        sub_industry: subIndustry,
+        business_description: businessDescription,
+        services_offered: servicesOffered,
+        staff_info: staffInfo,
+        business_highlights: businessHighlights,
+        phone,
+        email,
+        owner_first_name: firstName,
+        owner_last_name: lastName,
+      });
+      toast.success("Profile changes saved", { style: toastStyle });
+    } catch {
+      toast.error("Failed to save changes", { style: toastStyle });
+    }
   };
 
   const handlePurge = async () => {

@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
       if (campaign_id) {
         const { data: camp } = await admin.from("campaigns").select("id, is_active").eq("id", campaign_id).eq("business_id", business_id).single();
-        if (!camp) return NextResponse.json({ error: "Invalid campaign" }, { status: 400 });
+        if (!camp || !camp.is_active) return NextResponse.json({ error: "Invalid campaign" }, { status: 400 });
       }
 
       const { data: countResult } = await admin.rpc("count_recent_sessions", {
@@ -195,11 +195,11 @@ export async function POST(req: NextRequest) {
         reference_type: "complaint",
       });
 
-      const { data: admins } = await admin.from("super_admins").select("user_id");
+      const { data: admins } = await admin.from("super_admins").select("id");
       if (admins && admins.length > 0) {
         await admin.from("notifications").insert(
-          admins.map((a: { user_id: string }) => ({
-            recipient_id: a.user_id,
+          admins.map((a: { id: string }) => ({
+            recipient_id: a.id,
             recipient_type: "admin",
             type: "complaint",
             title: `Customer complaint (${star_rating}-star)`,

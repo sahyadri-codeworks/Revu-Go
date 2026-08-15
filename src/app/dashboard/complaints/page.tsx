@@ -58,15 +58,17 @@ export default function ComplaintsPage() {
   };
 
   const saveNotes = async (id: string, notes: string) => {
-    await fetch("/api/complaints", {
+    const res = await fetch("/api/complaints", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ complaintId: id, business_notes: notes }),
     });
 
-    setComplaints((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, business_notes: notes } : c))
-    );
+    if (res.ok) {
+      setComplaints((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, business_notes: notes } : c))
+      );
+    }
   };
 
   const filtered = complaints.filter((c) => {

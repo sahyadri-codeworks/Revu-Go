@@ -45,9 +45,17 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Complaint not found" }, { status: 404 });
   }
 
+  const validStatuses = ["open", "in_progress", "resolved", "closed"];
   const updates: Record<string, string> = { updated_at: new Date().toISOString() };
-  if (status) updates.status = status;
-  if (business_notes !== undefined) updates.business_notes = business_notes;
+  if (status) {
+    if (!validStatuses.includes(status)) {
+      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+    }
+    updates.status = status;
+  }
+  if (business_notes !== undefined) {
+    updates.business_notes = typeof business_notes === "string" ? business_notes.slice(0, 5000) : "";
+  }
 
   const { error } = await admin
     .from("complaints")
@@ -55,7 +63,7 @@ export async function PATCH(req: NextRequest) {
     .eq("id", complaintId)
     .eq("business_id", business.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Failed to update complaint" }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

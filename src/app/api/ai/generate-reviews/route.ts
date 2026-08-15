@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateLimit } from "@/lib/rate-limit";
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
@@ -70,6 +71,11 @@ async function fetchExistingReviews(businessId: string): Promise<string[]> {
 }
 
 export async function POST(request: Request) {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  if (!rateLimit(`gen-reviews:${ip}`, 30, 60_000)) {
+    return Response.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const body = await request.json();
   const { mcqAnswers, mcqNotes, starRating, businessId } = body;
 
