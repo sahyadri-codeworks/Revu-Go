@@ -12,8 +12,12 @@ import {
   Clock,
   Gift,
   Copy,
+  Upload,
+  Download,
 } from "lucide-react";
 import { format } from "date-fns";
+import { generateCSV, downloadCSV, COUPON_FIELDS } from "@/lib/csv";
+import { ImportCSVModal } from "@/components/dashboard/ImportCSVModal";
 
 const toastStyle = {
   backgroundColor: "#FFFFFF",
@@ -38,6 +42,7 @@ export default function VerifyCouponsPage() {
     expiresAt?: string;
   } | null>(null);
   const [redeeming, setRedeeming] = useState(false);
+  const [showImport, setShowImport] = useState(false);
 
   const now = new Date();
 
@@ -112,6 +117,35 @@ export default function VerifyCouponsPage() {
       toast.error("Failed to redeem coupon", { style: toastStyle });
     }
     setRedeeming(false);
+  };
+
+  const handleExport = () => {
+    const dataToExport = filter === "all" ? coupons : coupons.filter((c) => getCouponStatus(c) === filter);
+    const headers = ["coupon_code", "reward_type", "reward_value", "campaign", "is_redeemed", "issued_at", "expires_at", "status"];
+    const rows = dataToExport.map((c) => {
+      const camp = campaigns.find((ca) => ca.id === c.campaign_id);
+      return [
+        c.coupon_code, c.reward_type, c.reward_value,
+        camp?.title || "", String(c.is_redeemed),
+        c.issued_at, c.expires_at, getCouponStatus(c),
+      ];
+    });
+    const csv = generateCSV(headers, rows);
+    downloadCSV(csv, "verify-coupons.csv");
+    toast.success(`Exported ${rows.length} coupons`, { style: toastStyle });
+  };
+
+  const handleImport = async (records: Record<string, string>[]) => {
+    const res = await fetch("/api/csv/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ module: "coupons", records }),
+    });
+    const data = await res.json();
+    if (data.success > 0) {
+      setTimeout(() => window.location.reload(), 1000);
+    }
+    return { success: data.success || 0, failed: data.failed || 0 };
   };
 
   const statusBadge = (status: string) => {
@@ -294,7 +328,17 @@ export default function VerifyCouponsPage() {
         className="glass-card rounded-2xl p-6"
       >
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-          <h2 className="text-[15px] font-bold text-[#111]">All Coupons</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-[15px] font-bold text-[#111]">All Coupons</h2>
+            <button onClick={() => setShowImport(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[10px] text-[#6B7280] font-semibold hover:text-[#111] hover:border-[#D1D5DB] transition-colors">
+              <Upload className="w-3 h-3" /> Import
+            </button>
+            <button onClick={handleExport} disabled={coupons.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#E5E7EB] text-[10px] text-[#6B7280] font-semibold hover:text-[#111] hover:border-[#D1D5DB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+              <Download className="w-3 h-3" /> Export
+            </button>
+          </div>
 
           {/* Filter tabs */}
           <div className="flex gap-1 p-1 rounded-xl bg-[#F3F4F6] border border-[#E5E7EB]">
@@ -428,6 +472,15 @@ export default function VerifyCouponsPage() {
           </div>
         )}
       </motion.div>
+
+      <ImportCSVModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        module="coupons"
+        fields={COUPON_FIELDS}
+        uniqueFields={["coupon_code"]}
+        onImport={handleImport}
+      />
     </div>
   );
 }

@@ -5,11 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   AlertTriangle, Clock, CheckCircle, XCircle, ChevronDown,
   User, Mail, Phone, Eye, EyeOff, Star, MessageSquare, Filter,
-  Loader2, Search,
+  Loader2, Search, Upload, Download,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAppState } from "@/lib/app-context";
+import { generateCSV, downloadCSV, COMPLAINT_FIELDS } from "@/lib/csv";
+import { ImportCSVModal } from "@/components/dashboard/ImportCSVModal";
+import { toast } from "sonner";
 import type { Complaint } from "@/types";
+
+const toastStyle = { backgroundColor: "#FFFFFF", border: "1px solid #E5E7EB", color: "#111" };
 
 const STATUS_CONFIG = {
   open: { label: "Open", color: "text-[#F59E0B]", bg: "bg-[#FEF3C7]", icon: AlertTriangle },
@@ -26,6 +31,7 @@ export default function ComplaintsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
 
   useEffect(() => {
     if (!business?.id) return;
@@ -71,6 +77,38 @@ export default function ComplaintsPage() {
     }
   };
 
+  const handleExport = () => {
+    const dataToExport = filter === "all" ? complaints : complaints.filter((c) => c.status === filter);
+    const headers = ["complaint_text", "star_rating", "status", "contact_name", "contact_email", "contact_phone", "is_anonymous", "business_notes", "created_at"];
+    const rows = dataToExport.map((c) => [
+      c.complaint_text, String(c.star_rating), c.status,
+      c.contact_name || "", c.contact_email || "", c.contact_phone || "",
+      String(c.is_anonymous), c.business_notes || "", c.created_at,
+    ]);
+    const csv = generateCSV(headers, rows);
+    downloadCSV(csv, "customer-concerns.csv");
+    toast.success(`Exported ${rows.length} concerns`, { style: toastStyle });
+  };
+
+  const handleImport = async (records: Record<string, string>[]) => {
+    const res = await fetch("/api/csv/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ module: "complaints", records }),
+    });
+    const data = await res.json();
+    if (data.success > 0) {
+      const supabase = createClient();
+      const { data: refreshed } = await supabase
+        .from("complaints")
+        .select("*")
+        .eq("business_id", business!.id)
+        .order("created_at", { ascending: false });
+      if (refreshed) setComplaints(refreshed as Complaint[]);
+    }
+    return { success: data.success || 0, failed: data.failed || 0 };
+  };
+
   const filtered = complaints.filter((c) => {
     if (filter !== "all" && c.status !== filter) return false;
     if (searchQuery) {
@@ -102,11 +140,23 @@ export default function ComplaintsPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-[22px] font-bold text-[#111] mb-1">Customer Concerns</h1>
-        <p className="text-[13px] text-[#6B7280]">
-          Track and resolve customer complaints to improve your service
-        </p>
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-[22px] font-bold text-[#111] mb-1">Customer Concerns</h1>
+          <p className="text-[13px] text-[#6B7280]">
+            Track and resolve customer complaints to improve your service
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E5E7EB] text-[11px] text-[#6B7280] font-semibold hover:text-[#111] hover:border-[#D1D5DB] transition-colors">
+            <Upload className="w-3.5 h-3.5" /> Import CSV
+          </button>
+          <button onClick={handleExport} disabled={complaints.length === 0}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E5E7EB] text-[11px] text-[#6B7280] font-semibold hover:text-[#111] hover:border-[#D1D5DB] transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+            <Download className="w-3.5 h-3.5" /> Export CSV
+          </button>
+        </div>
       </div>
 
       {/* Stats cards */}
@@ -181,6 +231,14 @@ export default function ComplaintsPage() {
           </AnimatePresence>
         </div>
       )}
+
+      <ImportCSVModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        module="complaints"
+        fields={COMPLAINT_FIELDS}
+        onImport={handleImport}
+      />
     </div>
   );
 }
