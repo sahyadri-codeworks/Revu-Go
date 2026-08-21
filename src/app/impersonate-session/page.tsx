@@ -19,6 +19,8 @@ export default function ImpersonateSessionPage() {
       return;
     }
 
+    history.replaceState(null, "", window.location.pathname);
+
     const setup = async () => {
       const supabase = createClient();
       const { error } = await supabase.auth.setSession({

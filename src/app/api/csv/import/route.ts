@@ -16,6 +16,8 @@ async function getBusinessId(): Promise<string | null> {
   return data?.id || null;
 }
 
+const VALID_MODULES = ["reviews", "complaints", "coupons"];
+
 export async function POST(req: NextRequest) {
   const businessId = await getBusinessId();
   if (!businessId) {
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { module, records } = body;
 
-  if (!module || !Array.isArray(records) || records.length === 0) {
+  if (!module || !VALID_MODULES.includes(module) || !Array.isArray(records) || records.length === 0) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
@@ -38,14 +40,11 @@ export async function POST(req: NextRequest) {
   let failed = 0;
 
   if (module === "reviews") {
+    const validRows: Record<string, unknown>[] = [];
     for (const rec of records) {
       const starRating = Math.min(5, Math.max(1, parseInt(rec.star_rating) || 0));
-      if (!starRating || !rec.selected_review_text?.trim()) {
-        failed++;
-        continue;
-      }
-
-      const { error } = await admin.from("review_sessions").insert({
+      if (!starRating || !rec.selected_review_text?.trim()) { failed++; continue; }
+      validRows.push({
         business_id: businessId,
         star_rating: starRating,
         selected_review_text: rec.selected_review_text.trim().slice(0, 5000),
@@ -53,23 +52,21 @@ export async function POST(req: NextRequest) {
         mcq_answers: {},
         campaign_id: null,
       });
-
-      if (error) failed++;
-      else success++;
+    }
+    if (validRows.length > 0) {
+      const { error, data } = await admin.from("review_sessions").insert(validRows).select("id");
+      if (error) { failed += validRows.length; }
+      else { success = data?.length || 0; failed += validRows.length - success; }
     }
   } else if (module === "complaints") {
+    const validRows: Record<string, unknown>[] = [];
+    const validStatuses = ["open", "in_progress", "resolved", "closed"];
     for (const rec of records) {
       const starRating = Math.min(5, Math.max(1, parseInt(rec.star_rating) || 0));
-      if (!starRating || !rec.complaint_text?.trim()) {
-        failed++;
-        continue;
-      }
-
-      const validStatuses = ["open", "in_progress", "resolved", "closed"];
+      if (!starRating || !rec.complaint_text?.trim()) { failed++; continue; }
       const status = validStatuses.includes(rec.status?.toLowerCase()) ? rec.status.toLowerCase() : "open";
       const isAnon = rec.is_anonymous?.toLowerCase() === "true" || rec.is_anonymous === "1";
-
-      const { error } = await admin.from("complaints").insert({
+      validRows.push({
         business_id: businessId,
         complaint_text: rec.complaint_text.trim().slice(0, 5000),
         star_rating: starRating,
@@ -81,9 +78,11 @@ export async function POST(req: NextRequest) {
         consent_given: false,
         business_notes: rec.business_notes?.trim().slice(0, 5000) || null,
       });
-
-      if (error) failed++;
-      else success++;
+    }
+    if (validRows.length > 0) {
+      const { error, data } = await admin.from("complaints").insert(validRows).select("id");
+      if (error) { failed += validRows.length; }
+      else { success = data?.length || 0; failed += validRows.length - success; }
     }
   } else if (module === "coupons") {
     const { data: campaigns } = await admin
@@ -93,49 +92,48 @@ export async function POST(req: NextRequest) {
       .limit(1);
     const defaultCampaignId = campaigns?.[0]?.id || null;
 
+    const validRows: Record<string, unknown>[] = [];
+    const codes = new Set<string>();
     for (const rec of records) {
-      if (!rec.coupon_code?.trim() || !rec.reward_value?.trim() || !rec.expires_at) {
-        failed++;
-        continue;
-      }
-
+      if (!rec.coupon_code?.trim() || !rec.reward_value?.trim() || !rec.expires_at) { failed++; continue; }
       const expiresAt = new Date(rec.expires_at);
-      if (isNaN(expiresAt.getTime())) {
-        failed++;
-        continue;
-      }
-
+      if (isNaN(expiresAt.getTime())) { failed++; continue; }
+      const code = rec.coupon_code.trim().toUpperCase();
+      if (codes.has(code)) { failed++; continue; }
+      codes.add(code);
       const isRedeemed = rec.is_redeemed?.toLowerCase() === "true" || rec.is_redeemed === "1";
       const issuedAt = rec.issued_at ? new Date(rec.issued_at) : new Date();
-
-      const { data: existing } = await admin
-        .from("coupons")
-        .select("id")
-        .eq("business_id", businessId)
-        .eq("coupon_code", rec.coupon_code.trim().toUpperCase())
-        .single();
-
-      if (existing) {
-        failed++;
-        continue;
-      }
-
-      const { error } = await admin.from("coupons").insert({
+      validRows.push({
         business_id: businessId,
         campaign_id: defaultCampaignId,
-        coupon_code: rec.coupon_code.trim().toUpperCase(),
+        coupon_code: code,
         reward_type: rec.reward_type?.trim() || "own_discount",
         reward_value: rec.reward_value.trim().slice(0, 500),
         is_redeemed: isRedeemed,
         issued_at: issuedAt.toISOString(),
         expires_at: expiresAt.toISOString(),
       });
-
-      if (error) failed++;
-      else success++;
     }
-  } else {
-    return NextResponse.json({ error: "Unknown module" }, { status: 400 });
+
+    if (validRows.length > 0) {
+      const { data: existingCoupons } = await admin
+        .from("coupons")
+        .select("coupon_code")
+        .eq("business_id", businessId)
+        .in("coupon_code", validRows.map((r) => r.coupon_code as string));
+
+      const existingCodes = new Set((existingCoupons || []).map((c) => c.coupon_code));
+      const newRows = validRows.filter((r) => {
+        if (existingCodes.has(r.coupon_code as string)) { failed++; return false; }
+        return true;
+      });
+
+      if (newRows.length > 0) {
+        const { error, data } = await admin.from("coupons").insert(newRows).select("id");
+        if (error) { failed += newRows.length; }
+        else { success = data?.length || 0; failed += newRows.length - success; }
+      }
+    }
   }
 
   return NextResponse.json({ success, failed });

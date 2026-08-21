@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 
 function escapeHtml(str: string): string {
   return str
@@ -11,6 +12,12 @@ function escapeHtml(str: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { email, couponCode, rewardText, businessName, expiryDate } =
     await req.json();
 
@@ -18,11 +25,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+  }
+
   const admin = createAdminClient();
+
+  const { data: business } = await admin
+    .from("businesses")
+    .select("id")
+    .eq("owner_id", user.id)
+    .single();
+  if (!business) {
+    return NextResponse.json({ error: "No business found" }, { status: 403 });
+  }
+
   const { data: coupon } = await admin
     .from("coupons")
-    .select("id, business_id, coupon_code, businesses(name)")
+    .select("id, business_id, coupon_code")
     .eq("coupon_code", couponCode)
+    .eq("business_id", business.id)
     .single();
 
   if (!coupon) {

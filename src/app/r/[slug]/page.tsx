@@ -299,7 +299,8 @@ function CustomerFlow({
     setStep("google-redirect");
   };
 
-  const reviewTargetUrl = platformReviewUrl || business.google_maps_url;
+  const rawTargetUrl = platformReviewUrl || business.google_maps_url;
+  const reviewTargetUrl = rawTargetUrl && /^https?:\/\//i.test(rawTargetUrl) ? rawTargetUrl : null;
 
   const openReviewPlatform = () => {
     try { navigator.clipboard.writeText(finalReviewText); } catch {}

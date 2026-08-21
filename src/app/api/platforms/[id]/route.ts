@@ -41,7 +41,8 @@ export async function PATCH(
     updates.display_name = typeof body.display_name === "string" ? body.display_name.slice(0, 200) : "";
   }
   if (body.review_url !== undefined) {
-    updates.review_url = typeof body.review_url === "string" ? body.review_url.slice(0, 2000) : "";
+    const rawUrl = typeof body.review_url === "string" ? body.review_url.trim().slice(0, 2000) : "";
+    updates.review_url = rawUrl && /^https?:\/\//i.test(rawUrl) ? rawUrl : "";
   }
   if (body.is_connected !== undefined) {
     updates.is_connected = !!body.is_connected;

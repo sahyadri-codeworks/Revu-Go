@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
   }
 
   const sanitizedName = typeof display_name === "string" ? display_name.slice(0, 200) : "";
-  const sanitizedUrl = typeof review_url === "string" ? review_url.slice(0, 2000) : "";
+  const rawUrl = typeof review_url === "string" ? review_url.trim().slice(0, 2000) : "";
+  const sanitizedUrl = rawUrl && /^https?:\/\//i.test(rawUrl) ? rawUrl : "";
 
   const { data: existing } = await supabase
     .from("business_platforms")

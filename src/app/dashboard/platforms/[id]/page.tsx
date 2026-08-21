@@ -250,12 +250,13 @@ export default function PlatformDetailPage({ params }: { params: Promise<{ id: s
     if (!canvas) return;
     const win = window.open("", "_blank");
     if (!win) return;
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     win.document.write(`
-      <html><head><title>QR Code - ${meta?.shortName || "Platform"}</title>
+      <html><head><title>QR Code - ${esc(meta?.shortName || "Platform")}</title>
       <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:sans-serif}
       h2{margin-bottom:8px}p{color:#666;font-size:14px;margin-bottom:24px}</style></head>
-      <body><h2>${meta?.name || platform?.display_name}</h2>
-      <p>${business?.name || ""}</p>
+      <body><h2>${esc(meta?.name || platform?.display_name || "")}</h2>
+      <p>${esc(business?.name || "")}</p>
       <img src="${canvas.toDataURL("image/png")}" width="300" height="300" />
       <script>setTimeout(()=>{window.print();window.close()},300)</script></body></html>
     `);

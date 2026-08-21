@@ -35,7 +35,9 @@ export function PublishReview({ reviewText, googleMapsUrl, onPublished }: Publis
 
   const handleGoToGoogle = () => {
     copyReview();
-    window.open(googleMapsUrl, "_blank");
+    if (/^https?:\/\//i.test(googleMapsUrl)) {
+      window.open(googleMapsUrl, "_blank");
+    }
     setTimeout(onPublished, 1500);
   };
 
