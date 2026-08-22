@@ -97,9 +97,6 @@ export function ImportCSVModal({ open, onClose, module, fields, uniqueFields, on
     downloadCSV(csv, `${module}-template.csv`);
   };
 
-  const requiredFields = fields.filter((f) => f.required);
-  const optionalFields = fields.filter((f) => !f.required);
-
   return (
     <AnimatePresence>
       {open && (
@@ -147,30 +144,11 @@ export function ImportCSVModal({ open, onClose, module, fields, uniqueFields, on
                         onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])} />
                     </div>
 
-                    <div className="bg-[#F9FAFB] rounded-xl border border-[#F3F4F6] p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-[11px] text-[#6B7280] font-semibold uppercase tracking-wider">Expected Columns</h4>
-                        <button onClick={handleDownloadTemplate}
-                          className="flex items-center gap-1.5 text-[11px] text-[#7C3AED] font-semibold hover:underline">
-                          <Download className="w-3 h-3" /> Download Template
-                        </button>
-                      </div>
-                      <div className="space-y-1.5">
-                        {requiredFields.map((f) => (
-                          <div key={f.name} className="flex items-center gap-2">
-                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#EF4444]/10 text-[#EF4444]">Required</span>
-                            <span className="text-[12px] text-[#111] font-mono">{f.name}</span>
-                            {f.type && <span className="text-[10px] text-[#9CA3AF]">({f.type}{f.enumValues ? `: ${f.enumValues.join(", ")}` : ""})</span>}
-                          </div>
-                        ))}
-                        {optionalFields.map((f) => (
-                          <div key={f.name} className="flex items-center gap-2">
-                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#6B7280]/10 text-[#6B7280]">Optional</span>
-                            <span className="text-[12px] text-[#111] font-mono">{f.name}</span>
-                            {f.type && <span className="text-[10px] text-[#9CA3AF]">({f.type}{f.enumValues ? `: ${f.enumValues.join(", ")}` : ""})</span>}
-                          </div>
-                        ))}
-                      </div>
+                    <div className="flex justify-center">
+                      <button onClick={handleDownloadTemplate}
+                        className="flex items-center gap-1.5 text-[11px] text-[#7C3AED] font-semibold hover:underline">
+                        <Download className="w-3 h-3" /> Download Template
+                      </button>
                     </div>
                   </div>
                 )}
